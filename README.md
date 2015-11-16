@@ -18,9 +18,6 @@ You'll need [Java 7+](http://www.java.com/) and [Maven 3.3+](https://maven.apach
 ## Run it on Spark
 You can use the spark-submit script in the Spark bin directory:
 ```
-YOUR_SPARK_HOME/bin/spark-submit \
-  --class "Artificial Clairvoyance" \
-  --master local[4] \
-  target/scala-2.10/xxxxxxx.jar
+YOUR_SPARK_HOME/bin/spark-submit --class "Artificial Clairvoyance" --master local[4] target/scala-2.10/xxxxxxx.jar
 ```
 // TODO: Make this more specific/add a script to run the application
