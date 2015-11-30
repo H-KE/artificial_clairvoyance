@@ -75,9 +75,6 @@ object ArtificialClairvoyance {
     val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
     val mlbClusterCenter = mlbClusterModel.clusterCenters map (_.toArray)
-    // Print information
-    println("Cost of the MLB Model: %s".format(mlbClusterModel.computeCost(parsedBattingData)))
-    mlbClusterCenter.foreach(center => println("Cluster Center: (Hit: %s, HR: %s)".format(center(0), center(1))))
     // Group the actual players into clusters
     val mlbPlayersByGroup = batters2014.map{
       line => Array(line(8), line(11)).map(_.toDouble)
@@ -91,6 +88,10 @@ object ArtificialClairvoyance {
     val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
     // Find centers of each cluster
     val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
+
+    // Print information
+    println("Cost of the MLB Model: %s".format(mlbClusterModel.computeCost(parsedBattingData)))
+    mlbClusterCenter.foreach(center => println("Cluster Center: (Hit: %s, HR: %s)".format(center(0), center(1))))
     println("Cost of the NBA Model: %s".format(nbaClusterModel.computeCost(parsedNbaData)))
     nbaClusterCenter.foreach(
       center => println(
