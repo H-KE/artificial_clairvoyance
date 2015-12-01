@@ -28,11 +28,13 @@ object ArtificialClairvoyance {
     val rawBattingData = sc.textFile(battingFile, 2).cache()
     val mlbPlayerFile = "src/test/resources/lahman-csv_2015-01-24/Master.csv"
     val rawMlbPlayerFile = sc.textFile(mlbPlayerFile, 2).cache()
-    val centersOutput = "src/test/resources/output/centers.csv"
-    val playersOutput = "src/test/resources/output/players.csv"
+    val mlbCentersOutput = "src/test/resources/output/mlb_centers.csv"
+    val mlbPlayersOutput = "src/test/resources/output/mlb_players.csv"
     /* nba */
     val basketballFile = "src/test/resources/nba/leagues_NBA_2015_per_game_per_game.csv"
     val rawNbaData = sc.textFile(basketballFile, 2).cache()
+    val nbaCentersOutput = "src/test/resources/output/nba_centers.csv"
+    val nbaPlayersOutput = "src/test/resources/output/nba_players.csv"
 
     /**
      * Parse the necessary data from the collected data.
@@ -78,7 +80,7 @@ object ArtificialClairvoyance {
     // Cluster using K-means
     /* mlb */
     val iterationCountMLB = 1000
-    val clusterCountMLB = 20
+    val clusterCountMLB = 10
     // Produce the MLB clustering model
     val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
@@ -161,14 +163,14 @@ object ArtificialClairvoyance {
     // Create a Document to represent the data
     // Print the average stat for each group
 
-    printToFile(new File(centersOutput)) {
+    printToFile(new File(mlbCentersOutput)) {
         p => {
             p.println("hits,homeruns")
             mlbClusterCenter.foreach(center => p.println("%s,%s".format(center(0), center(1))))
         }
     }
 
-    printToFile(new File(playersOutput)) {
+    printToFile(new File(mlbPlayersOutput)) {
         p => {
             p.println("cluster,player,hits,homeruns")
             for((group, players) <- mlbPlayersByGroup) {
@@ -176,78 +178,58 @@ object ArtificialClairvoyance {
             }
         }
     }
-    // Output each individual player in each group
-    // for((group, players) <- mlbPlayersByGroup) {
-    //     printToFile(new File(playersOutput)) {
-    //         p => players.foreach(player => p.println("%s,%s,%s,%s".format(group, player(0)(0), player(1)(0), player(1)(1))))
-    //     }
-    // }
 
+    /* nba */
+    val iterationCountNBA = 10000
+    val clusterCountNBA = 20
+    // Produce the NBA clustering model
+    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
+    // Find centers of each cluster
+    val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
+    // Group the actual players into clusters
+    val nbaPlayersByGroup = nba2014.map{
+      line => Array(
+        // Metadata
+        Array(
+          line(1)
+        ),
+        // Actual Data
+        Array(
+          line(10),
+          line(11),
+          line(20),
+          line(23),
+          line(24),
+          line(25),
+          line(26),
+          line(27),
+          line(29)
+        )
+      )
+    }.groupBy{
+      player => nbaClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
+    }.collect()
 
+    /* nba */
+    // Print total cost
+    println("Cost of the NBA Model: %s".format(nbaClusterModel.computeCost(parsedNbaData)))
 
+    printToFile(new File(nbaCentersOutput)) {
+        p => {
+            p.println("fg,3pm,ft,reb,ast,stl,blk,tov,pts")
+            nbaClusterCenter.foreach(center => p.println("%s,%s,%s,%s,%s,%s,%s,%s,%s"
+                .format(center(0), center(1), center(2), center(3), center(4), center(5), center(6), center(7), center(8))))
+        }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-    // /* nba */
-    // val iterationCountNBA = 10000
-    // val clusterCountNBA = 20
-    // // Produce the NBA clustering model
-    // val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
-    // // Find centers of each cluster
-    // val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
-    // // Group the actual players into clusters
-    // val nbaPlayersByGroup = nba2014.map{
-    //   line => Array(
-    //     // Metadata
-    //     Array(
-    //       line(1)
-    //     ),
-    //     // Actual Data
-    //     Array(
-    //       line(10),
-    //       line(11),
-    //       line(20),
-    //       line(23),
-    //       line(24),
-    //       line(25),
-    //       line(26),
-    //       line(27),
-    //       line(29)
-    //     )
-    //   )
-    // }.groupBy{
-    //   player => nbaClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
-    // }.collect()
-
-    // /* nba */
-    // // Print total cost
-    // println("Cost of the NBA Model: %s".format(nbaClusterModel.computeCost(parsedNbaData)))
-    // // Print the average stat for each group
-    // nbaClusterCenter.foreach(
-    //   center => println(
-    //     "Cluster Center: (FG: %.2f, 3PM: %.2f, FT: %.2f, REB: %.2f, AST: %.2f, STL: %.2f, BLK: %.2f, TOV: %.2f, PTS: %.2f)"
-    //       .format(center(0), center(1), center(2), center(3), center(4), center(5), center(6), center(7), center(8))
-    //   )
-    // )
-    // // Output each individual player in each group
-    // for((group, players) <- nbaPlayersByGroup) {
-    //   players.foreach(
-    //     player =>
-    //       println(
-    //       "Group %s - Name: %s (FG: %.2f, 3PM: %.2f, FT: %.2f, REB: %.2f, AST: %.2f, STL: %.2f, BLK: %.2f, TOV: %.2f, PTS: %.2f)"
-    //         .format(group, player(0)(0), player(1)(0).toDouble, player(1)(1).toDouble, player(1)(2).toDouble, player(1)(3).toDouble, player(1)(4).toDouble, player(1)(5).toDouble, player(1)(6).toDouble, player(1)(7).toDouble, player(1)(8).toDouble)
-    //     )
-    //   )
-    // }
+    printToFile(new File(nbaPlayersOutput)) {
+        p => {
+            p.println("cluster,player,fg,3pm,ft,reb,ast,stl,blk,tov,pts")
+            for((group, players) <- nbaPlayersByGroup) {
+                players.foreach(player => p.println("%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f".format(group, player(0)(0), player(1)(0).toDouble, player(1)(1).toDouble, player(1)(2).toDouble, player(1)(3).toDouble, player(1)(4).toDouble, player(1)(5).toDouble, player(1)(6).toDouble, player(1)(7).toDouble, player(1)(8).toDouble)))
+            }
+        }
+    }
 
     // Terminate the spark context
     sc.stop()
