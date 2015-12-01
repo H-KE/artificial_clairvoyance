@@ -6,6 +6,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
     <script src="../build/nv.d3.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="../build/papaparse.min.js"></script>
 
     <style>
         text {
@@ -101,6 +102,7 @@
                     d.homeruns = +d.homeruns;
 
                     parsedMlbData[d.cluster].values.push({
+
                         x: d.hits,
                         y: d.homeruns,
                         shape: "circle"
@@ -225,6 +227,7 @@
     $("#y_select").change(function() {
         update();
     });
+
 </script>
 </body>
 </html>
