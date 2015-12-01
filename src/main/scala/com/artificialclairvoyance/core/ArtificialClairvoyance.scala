@@ -12,7 +12,7 @@ import org.apache.spark.SparkConf
 object ArtificialClairvoyance {
   def main(args: Array[String]) {
     // Should be some file on your system
-    val logFile = "/Users/yk_yosuke_mori/Documents/spark/artificial-clairvoyance/README.md"
+    val logFile = "/Users/kehan/spark/artificial-clairvoyance/README.md"
     val conf = new SparkConf().setAppName("Artificial Clairvoyance")
     val sc = new SparkContext(conf)
     val logData = sc.textFile(logFile, 2).cache()
