@@ -30,7 +30,8 @@ object ArtificialClairvoyance {
 
     /**
      * Parse the necessary data from the collected data.
-     * Get it ready for the machine learning algorithm
+     * Get it ready for the machine learning algorithm.
+     * TODO: Maybe a hash table with playerId->List(seasons)
      * TODO: Need to abstract the parsing in a different object
      */
     /* mlb */
@@ -63,7 +64,9 @@ object ArtificialClairvoyance {
     }
 
     /**
-     * Machine learning algorithms
+     * Clustering algorithm. Cluster every seasonal performance by every player.
+     * This will return a model that can give the type of seasonal performance,
+     * and the grouping of every seasonal performance.
      * TODO: Abstract the machine learning portion
      */
     // Cluster using K-means
@@ -74,7 +77,24 @@ object ArtificialClairvoyance {
     val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
     val mlbClusterCenter = mlbClusterModel.clusterCenters map (_.toArray)
-    // Group the actual players into clusters
+
+    /* nba */
+    val iterationCountNBA = 10000
+    val clusterCountNBA = 20
+    // Produce the NBA clustering model
+    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
+    // Find centers of each cluster
+    val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
+
+    /**
+     * Matching algorithm. Given current players and their past seasonal performances,
+     * we match the player's most recent season(s) with a cluster from the previous step.
+     * Then we find players from that cluster who's had a similar age (e.g. +/- 3yrs?) when they had this season type.
+     * Return the current players and their corresponding list of "similar players"
+     * TODO: Find the list of players of that cluster with similar age
+     * TODO: Abstract this out
+     */
+    /* mlb */
     val mlbPlayersByGroup = batters2014.map{
       line => Array(
         // Metaata
@@ -92,13 +112,6 @@ object ArtificialClairvoyance {
       player => mlbClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
     }.collect()
     /* nba */
-    val iterationCountNBA = 10000
-    val clusterCountNBA = 20
-    // Produce the NBA clustering model
-    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
-    // Find centers of each cluster
-    val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
-    // Group the actual players into clusters
     val nbaPlayersByGroup = nba2014.map{
       line => Array(
         // Metadata
@@ -121,6 +134,13 @@ object ArtificialClairvoyance {
     }.groupBy{
       player => nbaClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
     }.collect()
+
+    /**
+     * Regression Algorithm.
+     * Create a predictive model of each player from historical careers of their "similar players"
+     * TODO: Implement it
+     * TODO: abstract
+     */
 
     /**
      * Output the results
