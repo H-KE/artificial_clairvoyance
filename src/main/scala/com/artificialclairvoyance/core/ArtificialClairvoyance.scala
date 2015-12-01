@@ -12,7 +12,12 @@ import org.apache.spark.mllib.linalg.Vectors
  **/
 object ArtificialClairvoyance {
   def main(args: Array[String]) {
+<<<<<<< 5d11d6a5eb9938f1657a457a4685214c55afd77e
     // Set up spark context
+=======
+    // Should be some file on your system
+    val logFile = "/Users/kehan/spark/artificial-clairvoyance/README.md"
+>>>>>>> silly
     val conf = new SparkConf().setAppName("Artificial Clairvoyance")
     val sc = new SparkContext(conf)
 
