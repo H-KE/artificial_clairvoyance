@@ -5,7 +5,7 @@
     <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
     <script src="../build/nv.d3.js"></script>
-    <script src="../build/papaparse.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 
     <style>
         text {
@@ -14,7 +14,13 @@
         svg {
             display: block;
         }
-        html, body, #test1, svg {
+        html, body, svg {
+            margin: 0px;
+            padding: 0px;
+            height: 100%;
+            width: 100%;
+        }
+        #test1, #test2 {
             margin: 0px;
             padding: 0px;
             height: 100%;
@@ -27,41 +33,63 @@
 <div id="test1" class='with-3d-shadow with-transitions'>
     <svg></svg>
 </div>
+<div id="test2" class='with-3d-shadow with-transitions'>
+    <select id="x_select">
+        <option value="fg">Field Goals</option>
+        <option value="3pm">3-point Field Goals</option>
+        <option value="ft">Free Throws</option>
+        <option value="reb">Rebounds</option>
+        <option value="ast">Assists</option>
+        <option value="stl">Steals</option>
+        <option value="blk">Blocks</option>
+        <option value="tov">Turnovers</option>
+        <option value="pts">Points</option>
+    </select>
+    <select id="y_select">
+        <option value="stl">Steals</option>
+        <option value="blk">Blocks</option>
+        <option value="tov">Turnovers</option>
+        <option value="pts">Points</option>
+        <option value="fg">Field Goals</option>
+        <option value="3pm">3-point Field Goals</option>
+        <option value="ft">Free Throws</option>
+        <option value="reb">Rebounds</option>
+        <option value="ast">Assists</option>
+    </select>
+    <svg></svg>
+</div>
 
 <script>
-
-    // create the chart
-    var chart;
-    var parsedData = [];
+    // create the charts
+    var mlbChart;
+    var nbaChart;
     nv.addGraph(function() {
-        var parsedData = [];
+        var parsedMlbData = [];
 
-        
-
-        chart = nv.models.scatterChart()
+        mlbChart = nv.models.scatterChart()
             .showDistX(true)
             .showDistY(true)
             .useVoronoi(true)
-            .color(d3.scale.category10().range())
+            .color(d3.scale.category20().range())
             .duration(300)
         ;
-        chart.dispatch.on('renderEnd', function(){
+        mlbChart.dispatch.on('renderEnd', function(){
             console.log('render complete');
         });
-        chart.xAxis.tickFormat(d3.format('.02f'));
-        chart.yAxis.tickFormat(d3.format('.02f'));
+        mlbChart.xAxis.tickFormat(d3.format('.02f'));
+        mlbChart.yAxis.tickFormat(d3.format('.02f'));
 
         d3.csv("src/test/resources/output/mlb_centers.csv", function(data) {
             data.forEach(function(d, i) {
                 d.hits = +d.hits;
                 d.homeruns = +d.homeruns;
 
-                parsedData.push({
+                parsedMlbData.push({
                     key: "Cluster " + i,
                     values: [{
                         x: d.hits,
                         y: d.homeruns,
-                        size: 20,
+                        size: 50,
                         shape: "circle"
                     }]
                 })
@@ -72,7 +100,7 @@
                     d.hits = +d.hits;
                     d.homeruns = +d.homeruns;
 
-                    parsedData[d.cluster].values.push({
+                    parsedMlbData[d.cluster].values.push({
                         x: d.hits,
                         y: d.homeruns,
                         shape: "circle"
@@ -80,15 +108,122 @@
                 })
 
                 d3.select('#test1 svg')
-                    .datum(parsedData)
-                    .call(chart);
-                nv.utils.windowResize(chart.update);
-                chart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
-                return chart;
+                    .datum(parsedMlbData)
+                    .call(mlbChart);
+                nv.utils.windowResize(mlbChart.update);
+                mlbChart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
+                return mlbChart;
             })
         })
-        
-        
+    });
+    nv.addGraph(function() {
+        var parsedNbaData = [];
+        var x_axis = $("#x_select").val();
+        var y_axis = $("#y_select").val();
+
+        nbaChart = nv.models.scatterChart()
+            .showDistX(true)
+            .showDistY(true)
+            .useVoronoi(true)
+            .color(d3.scale.category20().range())
+            .duration(300)
+        ;
+        nbaChart.dispatch.on('renderEnd', function(){
+            console.log('render complete');
+        });
+        nbaChart.xAxis.tickFormat(d3.format('.02f'));
+        nbaChart.yAxis.tickFormat(d3.format('.02f'));
+
+        d3.csv("src/test/resources/output/nba_centers.csv", function(data) {
+            data.forEach(function(d, i) {
+                d[x_axis] = +d[x_axis];
+                d[y_axis] = +d[y_axis];
+
+                parsedNbaData.push({
+                    key: "Cluster " + i,
+                    values: [{
+                        x: d[x_axis] * 100,
+                        y: d[y_axis] * 100,
+                        size: 20,
+                        shape: "circle"
+                    }]
+                });
+
+            });
+            d3.csv("src/test/resources/output/nba_players.csv", function(playerData) {
+                playerData.forEach(function(d) {
+                    d.cluster = +d.cluster;
+                    d[x_axis] = +d[x_axis];
+                    d[y_axis] = +d[y_axis];
+
+                    console.log(d[x_axis], d[y_axis]);
+
+                    parsedNbaData[d.cluster].values.push({
+                        x: d[x_axis] * 100,
+                        y: d[y_axis] * 100,
+                        shape: "circle"
+                    })
+                })
+
+                d3.select('#test2 svg')
+                    .datum(parsedNbaData)
+                    .call(nbaChart);
+                nv.utils.windowResize(nbaChart.update);
+                nbaChart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
+                return nbaChart;
+            })
+        })
+    });
+    
+    function update() {
+        var parsedNbaData = [];
+        var x_axis = $("#x_select").val();
+        var y_axis = $("#y_select").val();
+
+        d3.csv("src/test/resources/output/nba_centers.csv", function(data) {
+            data.forEach(function(d, i) {
+                d[x_axis] = +d[x_axis];
+                d[y_axis] = +d[y_axis];
+
+                parsedNbaData.push({
+                    key: "Cluster " + i,
+                    values: [{
+                        x: d[x_axis] * 100,
+                        y: d[y_axis] * 100,
+                        size: 20,
+                        shape: "circle"
+                    }]
+                });
+
+            });
+            d3.csv("src/test/resources/output/nba_players.csv", function(playerData) {
+                playerData.forEach(function(d) {
+                    d.cluster = +d.cluster;
+                    d[x_axis] = +d[x_axis];
+                    d[y_axis] = +d[y_axis];
+
+                    console.log(d[x_axis], d[y_axis]);
+
+                    parsedNbaData[d.cluster].values.push({
+                        x: d[x_axis] * 100,
+                        y: d[y_axis] * 100,
+                        shape: "circle"
+                    })
+                })
+
+                d3.select('#test2 svg')
+                    .datum(parsedNbaData)
+                    .call(nbaChart);
+                nv.utils.windowResize(nbaChart.update);
+            })
+        })
+    };
+
+    $("#x_select").change(function() {
+        update();
+    });
+    $("#y_select").change(function() {
+        update();
     });
 </script>
 </body>
