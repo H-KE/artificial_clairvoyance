@@ -78,46 +78,21 @@
         });
         mlbChart.xAxis.tickFormat(d3.format('.02f'));
         mlbChart.yAxis.tickFormat(d3.format('.02f'));
+        mlbChart.tooltip.contentGenerator(function(data) {
+            if (data.point.name) {
+                return data.point.name + ": " + data.point.x + ", " + data.point.y;
+            } else 
+                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y
+        });
 
-        d3.csv("src/test/resources/output/mlb_centers.csv", function(data) {
-            data.forEach(function(d, i) {
-                d.hits = +d.hits;
-                d.homeruns = +d.homeruns;
-
-                parsedMlbData.push({
-                    key: "Cluster " + i,
-                    values: [{
-                        x: d.hits,
-                        y: d.homeruns,
-                        size: 50,
-                        shape: "circle"
-                    }]
-                })
-            })
-            d3.csv("src/test/resources/output/mlb_players.csv", function(playerData) {
-                playerData.forEach(function(d) {
-                    d.cluster = +d.cluster;
-                    d.hits = +d.hits;
-                    d.homeruns = +d.homeruns;
-
-                    parsedMlbData[d.cluster].values.push({
-                        x: d.hits,
-                        y: d.homeruns,
-                        shape: "circle"
-                    })
-                })
-
-                d3.select('#test1 svg')
-                    .datum(parsedMlbData)
-                    .call(mlbChart);
-                nv.utils.windowResize(mlbChart.update);
-                mlbChart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
-                return mlbChart;
-            })
-        })
+        renderChart(mlbChart, 
+               d3.select('#test1 svg'), 
+               "src/test/resources/output/mlb_centers.csv", 
+               "src/test/resources/output/mlb_players.csv",
+               "hits", 
+               "homeruns")
     });
     nv.addGraph(function() {
-        var parsedNbaData = [];
         var x_axis = $("#x_select").val();
         var y_axis = $("#y_select").val();
 
@@ -133,97 +108,78 @@
         });
         nbaChart.xAxis.tickFormat(d3.format('.02f'));
         nbaChart.yAxis.tickFormat(d3.format('.02f'));
+        nbaChart.tooltip.contentGenerator(function(data) {
+            if (data.point.name) {
+                return data.point.name + ": " + data.point.x + ", " + data.point.y;
+            } else 
+                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y
+        });
 
-        d3.csv("src/test/resources/output/nba_centers.csv", function(data) {
-            data.forEach(function(d, i) {
-                d[x_axis] = +d[x_axis];
-                d[y_axis] = +d[y_axis];
-
-                parsedNbaData.push({
-                    key: "Cluster " + i,
-                    values: [{
-                        x: d[x_axis] * 100,
-                        y: d[y_axis] * 100,
-                        size: 20,
-                        shape: "circle"
-                    }]
-                });
-
-            });
-            d3.csv("src/test/resources/output/nba_players.csv", function(playerData) {
-                playerData.forEach(function(d) {
-                    d.cluster = +d.cluster;
-                    d[x_axis] = +d[x_axis];
-                    d[y_axis] = +d[y_axis];
-
-                    console.log(d[x_axis], d[y_axis]);
-
-                    parsedNbaData[d.cluster].values.push({
-                        x: d[x_axis] * 100,
-                        y: d[y_axis] * 100,
-                        shape: "circle"
-                    })
-                })
-
-                d3.select('#test2 svg')
-                    .datum(parsedNbaData)
-                    .call(nbaChart);
-                nv.utils.windowResize(nbaChart.update);
-                nbaChart.dispatch.on('stateChange', function(e) { ('New State:', JSON.stringify(e)); });
-                return nbaChart;
-            })
-        })
+        renderChart(nbaChart, 
+               d3.select('#test2 svg'), 
+               "src/test/resources/output/nba_centers.csv", 
+               "src/test/resources/output/nba_players.csv",
+               x_axis, 
+               y_axis);
     });
     
-    function update() {
-        var parsedNbaData = [];
-        var x_axis = $("#x_select").val();
-        var y_axis = $("#y_select").val();
+    function renderChart(chart, selector, centers_csvpath, players_csvpath, x_axis, y_axis) {
+        var parsedData = [];
 
-        d3.csv("src/test/resources/output/nba_centers.csv", function(data) {
+        d3.csv(centers_csvpath, function(data) {
             data.forEach(function(d, i) {
                 d[x_axis] = +d[x_axis];
                 d[y_axis] = +d[y_axis];
 
-                parsedNbaData.push({
+                parsedData.push({
                     key: "Cluster " + i,
                     values: [{
-                        x: d[x_axis] * 100,
-                        y: d[y_axis] * 100,
-                        size: 20,
+                        x: d[x_axis],
+                        y: d[y_axis],
+                        center: i,
+                        size: 50,
                         shape: "circle"
                     }]
                 });
 
             });
-            d3.csv("src/test/resources/output/nba_players.csv", function(playerData) {
+            d3.csv(players_csvpath, function(playerData) {
                 playerData.forEach(function(d) {
                     d.cluster = +d.cluster;
                     d[x_axis] = +d[x_axis];
                     d[y_axis] = +d[y_axis];
 
-                    console.log(d[x_axis], d[y_axis]);
-
-                    parsedNbaData[d.cluster].values.push({
-                        x: d[x_axis] * 100,
-                        y: d[y_axis] * 100,
+                    parsedData[d.cluster].values.push({
+                        x: d[x_axis],
+                        y: d[y_axis],
+                        name: d["player"],
                         shape: "circle"
                     })
                 })
 
-                d3.select('#test2 svg')
-                    .datum(parsedNbaData)
-                    .call(nbaChart);
-                nv.utils.windowResize(nbaChart.update);
+                selector.datum(parsedData).call(chart);
+                nv.utils.windowResize(chart.update);
             })
         })
     };
 
     $("#x_select").change(function() {
-        update();
+        renderChart(nbaChart, 
+            d3.select('#test2 svg'), 
+                      "src/test/resources/output/nba_centers.csv", 
+                      "src/test/resources/output/nba_players.csv",
+                      $("#x_select").val(), 
+                      $("#y_select").val()
+            );
     });
     $("#y_select").change(function() {
-        update();
+        renderChart(nbaChart, 
+            d3.select('#test2 svg'), 
+                      "src/test/resources/output/nba_centers.csv", 
+                      "src/test/resources/output/nba_players.csv",
+                      $("#x_select").val(), 
+                     $("#y_select").val()
+            );
     });
 </script>
 </body>

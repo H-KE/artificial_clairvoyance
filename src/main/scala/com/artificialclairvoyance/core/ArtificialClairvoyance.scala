@@ -77,7 +77,7 @@ object ArtificialClairvoyance {
     // Cluster using K-means
     /* mlb */
     val iterationCountMLB = 1000
-    val clusterCountMLB = 20
+    val clusterCountMLB = 14
     // Produce the MLB clustering model
     val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
@@ -129,7 +129,7 @@ object ArtificialClairvoyance {
 
     /* nba */
     val iterationCountNBA = 10000
-    val clusterCountNBA = 20
+    val clusterCountNBA = 14
     // Produce the NBA clustering model
     val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
     // Find centers of each cluster
