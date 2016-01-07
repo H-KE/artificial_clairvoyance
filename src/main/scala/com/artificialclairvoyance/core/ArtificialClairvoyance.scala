@@ -24,6 +24,8 @@ object ArtificialClairvoyance {
     /* mlb */
     val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting.csv"
     val rawBattingData = sc.textFile(battingFile, 2).cache()
+    val mlbPlayerFile = "src/test/resources/lahman-csv_2015-01-24/Master.csv"
+    val rawMlbPlayerFile = sc.textFile(mlbPlayerFile, 2).cache()
     /* nba */
     val basketballFile = "src/test/resources/nba/leagues_NBA_2015_per_game_per_game.csv"
     val rawNbaData = sc.textFile(basketballFile, 2).cache()
@@ -109,6 +111,7 @@ object ArtificialClairvoyance {
         )
       )
     }.groupBy{
+      // Predict using the actual data
       player => mlbClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
     }.collect()
     /* nba */
@@ -132,6 +135,7 @@ object ArtificialClairvoyance {
         )
       )
     }.groupBy{
+      // Predict using the actual data
       player => nbaClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
     }.collect()
 
