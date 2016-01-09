@@ -73,17 +73,28 @@ object ArtificialClairvoyance {
     }
 
     /**
-     * Machine learning algorithms
+     * Clustering algorithm. Cluster every seasonal performance by every player.
+     * This will return a model that can give the type of seasonal performance,
+     * and the grouping of every seasonal performance.
      * TODO: Abstract the machine learning portion
      */
     // Cluster using K-means
     /* mlb */
     val iterationCountMLB = 1000
-    val clusterCountMLB = 20
+    val clusterCountMLB = 10
     // Produce the MLB clustering model
     val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
     val mlbClusterCenter = mlbClusterModel.clusterCenters map (_.toArray)
+
+    /* nba */
+    val iterationCountNBA = 10000
+    val clusterCountNBA = 20
+    // Produce the NBA clustering model
+    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
+    // Find centers of each cluster
+    val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
+    
     // Group the actual players into clusters
     val mlbPlayersByGroup = batters2014.map{
       line => Array(
@@ -102,15 +113,7 @@ object ArtificialClairvoyance {
       // Predict using the actual data
       player => mlbClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
     }.collect()
-
     /* nba */
-    val iterationCountNBA = 10000
-    val clusterCountNBA = 20
-    // Produce the NBA clustering model
-    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
-    // Find centers of each cluster
-    val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
-    // Group the actual players into clusters
     val nbaPlayersByGroup = nba2014.map{
       line => Array(
         // Metadata
@@ -167,6 +170,7 @@ object ArtificialClairvoyance {
                 players.foreach(player => p.println("%s,%s,%s,%s".format(group, player(0)(0), player(1)(0), player(1)(1))))
             }
         }
+    }
 
     /* nba */
     // Print total cost

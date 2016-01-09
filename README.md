@@ -21,4 +21,10 @@ You can use the spark-submit script in the Spark bin directory:
 ```
 ${SPARK_HOME}/bin/spark-submit --class "com.artificialclairvoyance.core.ArtificialClairvoyance" --master local[4] target/scala-2.10/artificial-clairvoyance_2.10-0.0.1.jar
 ```
+
+## Visualization
+You need to be able to serve the index.html locally.
+Can use http-server:
+npm install http-server -g (only need to do this once)
+http-server (in artificial clairvoyance directory)
 // TODO: Make this more specific/add a script to run the application, add App configurations
