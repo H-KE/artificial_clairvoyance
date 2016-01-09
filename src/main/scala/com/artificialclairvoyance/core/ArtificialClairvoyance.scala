@@ -45,7 +45,7 @@ object ArtificialClairvoyance {
     /* mlb */
     // Only get data for 2014 and with games played greater than 100 (to reduce noise)
     val batters2014 = rawBattingData.map(_.split(","))
-      .filter(line => line(1).equals("2012") && line(5).toInt >= 50)
+      .filter(line => line(1).equals("2014") && line(5).toInt >= 100)
     // parsedData contains the metrics we are interested in, in vector form for each player.
     val parsedBattingData = batters2014.map {
       line => Vectors.dense(
