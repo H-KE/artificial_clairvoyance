@@ -65,6 +65,7 @@
     var nbaChart;
     nv.addGraph(function() {
         var parsedMlbData = [];
+
         mlbChart = nv.models.scatterChart()
             .showDistX(true)
             .showDistY(true)
@@ -83,6 +84,7 @@
             } else 
                 return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y
         });
+
         renderChart(mlbChart, 
                d3.select('#test1 svg'), 
                "src/test/resources/output/mlb_centers.csv", 
@@ -93,6 +95,7 @@
     nv.addGraph(function() {
         var x_axis = $("#x_select").val();
         var y_axis = $("#y_select").val();
+
         nbaChart = nv.models.scatterChart()
             .showDistX(true)
             .showDistY(true)
@@ -105,12 +108,14 @@
         });
         nbaChart.xAxis.tickFormat(d3.format('.02f'));
         nbaChart.yAxis.tickFormat(d3.format('.02f'));
+
         nbaChart.tooltip.contentGenerator(function(data) {
             if (data.point.name) {
                 return data.point.name + ": " + data.point.x + ", " + data.point.y;
             } else 
                 return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y
         });
+
         renderChart(nbaChart, 
                d3.select('#test2 svg'), 
                "src/test/resources/output/nba_centers.csv", 
@@ -121,10 +126,12 @@
     
     function renderChart(chart, selector, centers_csvpath, players_csvpath, x_axis, y_axis) {
         var parsedData = [];
+
         d3.csv(centers_csvpath, function(data) {
             data.forEach(function(d, i) {
                 d[x_axis] = +d[x_axis];
                 d[y_axis] = +d[y_axis];
+
                 parsedData.push({
                     key: "Cluster " + i,
                     values: [{
@@ -135,12 +142,14 @@
                         shape: "circle"
                     }]
                 });
+
             });
             d3.csv(players_csvpath, function(playerData) {
                 playerData.forEach(function(d) {
                     d.cluster = +d.cluster;
                     d[x_axis] = +d[x_axis];
                     d[y_axis] = +d[y_axis];
+
                     parsedData[d.cluster].values.push({
                         x: d[x_axis],
                         y: d[y_axis],
@@ -148,11 +157,13 @@
                         shape: "circle"
                     })
                 })
+
                 selector.datum(parsedData).call(chart);
                 nv.utils.windowResize(chart.update);
             })
         })
     };
+
     $("#x_select").change(function() {
         renderChart(nbaChart, 
             d3.select('#test2 svg'), 
