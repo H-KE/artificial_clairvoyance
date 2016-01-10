@@ -77,15 +77,15 @@ object ArtificialClairvoyance {
         line(6),// (6)Games,
         line(7),// (7)MP,
         (line(8).toDouble*100).toString,// (8)FG%,
-        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
+        (line(9).toDouble/line(6).toDouble).toString,// (9)3PM per game,
         (line(10).toDouble*100).toString,// (10)3P%,
         (line(11).toDouble*100).toString,// (11)FT%,
-        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
-        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
-        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
-        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
-        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
-        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+        (line(12).toDouble/line(6).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(6).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(6).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(6).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(6).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(6).toDouble).toString// (17)PTS per game
       ))
     // Get historical data for nba. This is what we will use to train our models
     val nbaHistorical = rawNbaData.map(_.split(","))
@@ -100,15 +100,15 @@ object ArtificialClairvoyance {
         line(6),// (6)Games,
         line(7),// (7)MP,
         (line(8).toDouble*100).toString,// (8)FG%,
-        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
+        (line(9).toDouble/line(6).toDouble).toString,// (9)3PM per game,
         (line(10).toDouble*100).toString,// (10)3P%,
         (line(11).toDouble*100).toString,// (11)FT%,
-        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
-        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
-        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
-        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
-        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
-        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+        (line(12).toDouble/line(6).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(6).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(6).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(6).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(6).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(6).toDouble).toString// (17)PTS per game
       ))
     // use FG%(8), 3PM(9), FT%(11), REB(12), AST(13), STL(14), BLK(15), TOV(16), PTS(17)
     val trainingNbaData = nbaHistorical.map {
@@ -317,7 +317,7 @@ object ArtificialClairvoyance {
                 && line(0)(2).toString.toInt >= player(0)(2).toString.toInt - 1
                 && line(0)(2).toString.toInt <= player(0)(2).toString.toInt + 1)
               .map(similarPlayer => similarPlayer(0)(0))
-              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2.toString)
           )))
         }
       }
@@ -368,7 +368,7 @@ object ArtificialClairvoyance {
                   && line(0)(3).toString.toInt >= player(0)(3).toString.toInt - 1
                   && line(0)(3).toString.toInt <= player(0)(3).toString.toInt + 1)
               .map(similarPlayer => similarPlayer(0)(0))
-              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2.toString)
           )))
         }
       }
