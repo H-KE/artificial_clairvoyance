@@ -66,7 +66,7 @@ object ArtificialClairvoyance {
     // Only get data for 2014 and with games played greater than 20
     // Used for prediction
     val nba2014 = rawNbaData.map(_.split(","))
-      .filter(line => line(2).forall(_.isDigit) && line(2).toInt.equals(2014) && line(2).toDouble >= 20)
+      .filter(line => line(2).forall(_.isDigit) && line(2).toInt.equals(2015) && line(6).toDouble >= 20)
       .map(line => Array(
         line(0),// (0)PlayerId,
         line(1),// (1)Name,
@@ -76,20 +76,20 @@ object ArtificialClairvoyance {
         line(5),// (5)Team,
         line(6),// (6)Games,
         line(7),// (7)MP,
-        (line(8).toDouble*100).toString,// (8)FG%,
-        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
-        (line(10).toDouble*100).toString,// (10)3P%,
-        (line(11).toDouble*100).toString,// (11)FT%,
-        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
-        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
-        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
-        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
-        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
-        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+        line(8),// (8)FG%,
+        (line(9).toDouble/line(6).toDouble).toString,// (9)3PM per game,
+        line(10),// (10)3P%,
+        line(11),// (11)FT%,
+        (line(12).toDouble/line(6).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(6).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(6).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(6).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(6).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(6).toDouble).toString// (17)PTS per game
       ))
     // Get historical data for nba. This is what we will use to train our models
     val nbaHistorical = rawNbaData.map(_.split(","))
-      .filter(line => line(2).forall(_.isDigit) && line(2).toDouble >= 20)
+      .filter(line => line(2).forall(_.isDigit) && line(6).toDouble >= 20)
       .map(line => Array(
         line(0),// (0)PlayerId,
         line(1),// (1)Name,
@@ -99,16 +99,16 @@ object ArtificialClairvoyance {
         line(5),// (5)Team,
         line(6),// (6)Games,
         line(7),// (7)MP,
-        (line(8).toDouble*100).toString,// (8)FG%,
-        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
-        (line(10).toDouble*100).toString,// (10)3P%,
-        (line(11).toDouble*100).toString,// (11)FT%,
-        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
-        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
-        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
-        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
-        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
-        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+        line(8),// (8)FG%,
+        (line(9).toDouble/line(6).toDouble).toString,// (9)3PM per game,
+        line(10),// (10)3P%,
+        line(11),// (11)FT%,
+        (line(12).toDouble/line(6).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(6).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(6).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(6).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(6).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(6).toDouble).toString// (17)PTS per game
       ))
     // use FG%(8), 3PM(9), FT%(11), REB(12), AST(13), STL(14), BLK(15), TOV(16), PTS(17)
     val trainingNbaData = nbaHistorical.map {
@@ -170,7 +170,7 @@ object ArtificialClairvoyance {
 
     /* nba */
     val iterationCountNBA = 10000
-    val clusterCountNBA = 20
+    val clusterCountNBA = 30
     // Produce the NBA clustering model
     val nbaClusterModel = KMeans.train(trainingNbaData, clusterCountNBA, iterationCountNBA)
     // Find centers of each cluster
@@ -317,7 +317,7 @@ object ArtificialClairvoyance {
                 && line(0)(2).toString.toInt >= player(0)(2).toString.toInt - 1
                 && line(0)(2).toString.toInt <= player(0)(2).toString.toInt + 1)
               .map(similarPlayer => similarPlayer(0)(0))
-              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2.toString)
           )))
         }
       }
@@ -347,7 +347,7 @@ object ArtificialClairvoyance {
     printToFile(new File(nbaPlayers2014Output)) {
       p => {
         p.println("cluster,player,playerId,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age,similarPlayers")
-        for((group, players) <- nbaGroups) {
+        for((group, players) <- nbaPlayers2014ByGroup) {
           players.foreach(player => p.println("%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s,%s".format(
             group,
             player(0)(1),
@@ -368,19 +368,20 @@ object ArtificialClairvoyance {
                   && line(0)(3).toString.toInt >= player(0)(3).toString.toInt - 1
                   && line(0)(3).toString.toInt <= player(0)(3).toString.toInt + 1)
               .map(similarPlayer => similarPlayer(0)(0))
-              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2.toString)
           )))
         }
       }
     }
     printToFile(new File(nbaPlayersHistoricalOutput)) {
       p => {
-        p.println("cluster,player,playerId,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age")
+        p.println("cluster,player,playerId,season,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age")
         for((group, players) <- nbaGroups) {
-          players.foreach(player => p.println("%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s".format(
+          players.foreach(player => p.println("%s,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s".format(
             group,
             player(0)(1),
             player(0)(0),
+            player(0)(2),
             player(1)(0).toString.toDouble,
             player(1)(1).toString.toDouble,
             player(1)(2).toString.toDouble,
