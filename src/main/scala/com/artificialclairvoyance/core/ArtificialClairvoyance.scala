@@ -26,8 +26,6 @@ object ArtificialClairvoyance {
     /* mlb */
     val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting_modified.csv"
     val rawBattingData = sc.textFile(battingFile, 2).cache()
-    val mlbPlayerFile = "src/test/resources/lahman-csv_2015-01-24/Master.csv"
-    val rawMlbPlayerFile = sc.textFile(mlbPlayerFile, 2).cache()
     val mlbCentersOutput = "src/test/resources/output/mlb_centers.csv"
     val mlbPlayersHistoricalOutput = "src/test/resources/output/mlb_players_historical.csv"
     val mlbPlayers2014Output = "src/test/resources/output/mlb_players2014.csv"
@@ -49,7 +47,7 @@ object ArtificialClairvoyance {
       .filter(line => line(1).forall(_.isDigit) && line(1).toInt.equals(2014) && line(5).toInt >= 100)
     // Get historical data for mlb. This is what we will use to train our models
     val battersHistorical = rawBattingData.map(_.split(","))
-      .filter(line => line(1).forall(_.isDigit) && line(1).toInt >= 1990 && line(1).toInt <= 2014 && line(5).toInt >= 100)
+      .filter(line => line(1).forall(_.isDigit) && line(1).toInt >= 1980 && line(1).toInt <= 2014 && line(5).toInt >= 100)
     // parsedData contains the metrics we are interested in, in vector form for each player.
     val trainingBattingData = battersHistorical.map {
       line => Vectors.dense(
@@ -219,8 +217,9 @@ object ArtificialClairvoyance {
             player(1)(0),
             player(1)(1),
             player(0)(2),
-            mlbPlayers.filter(
-              line => line(0)(3).equals(group)
+            mlbPlayers
+              .filter(
+                line => line(0)(3).equals(group)
                 && line(0)(2).toString.toInt >= player(0)(2).toString.toInt - 1
                 && line(0)(2).toString.toInt <= player(0)(2).toString.toInt + 1)
               .map(similarPlayer => similarPlayer(0)(0))
