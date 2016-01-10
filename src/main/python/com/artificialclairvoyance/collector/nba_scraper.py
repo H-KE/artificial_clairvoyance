@@ -12,7 +12,7 @@ seasonFrom = 1980
 seasonTo = 2015
 
 header = ["PlayerId", "Name", "Season", "Age", "Position", "Team", "Games", "MP", "FG%", "3PM", "3P%", "FT%", "REB", "AST", "STL", "BLK", "TOV", "PTS"]
-with open('nbaPlayerTotals.csv', 'w') as out:
+with open('src/test/resources/nba/nbaPlayerTotals.csv', 'w') as out:
 	writer = csv.writer(out, delimiter=',')
 	writer.writerow(header)
 	year = seasonFrom
