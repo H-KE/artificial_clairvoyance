@@ -14,8 +14,6 @@ import java.io._
  **/
 object ArtificialClairvoyance {
   def main(args: Array[String]) {
-    // Should be some file on your system
-    val logFile = "/Users/kehan/spark/artificial-clairvoyance/README.md"
     // Set up spark context
     val conf = new SparkConf().setAppName("Artificial Clairvoyance")
     val sc = new SparkContext(conf)
@@ -26,12 +24,13 @@ object ArtificialClairvoyance {
      * TODO: The filepath should not be hard coded
      */
     /* mlb */
-    val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting.csv"
+    val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting_modified.csv"
     val rawBattingData = sc.textFile(battingFile, 2).cache()
     val mlbPlayerFile = "src/test/resources/lahman-csv_2015-01-24/Master.csv"
     val rawMlbPlayerFile = sc.textFile(mlbPlayerFile, 2).cache()
     val mlbCentersOutput = "src/test/resources/output/mlb_centers.csv"
-    val mlbPlayersOutput = "src/test/resources/output/mlb_players.csv"
+    val mlbPlayersHistoricalOutput = "src/test/resources/output/mlb_players_historical.csv"
+    val mlbPlayers2014Output = "src/test/resources/output/mlb_players2014.csv"
     /* nba */
     val basketballFile = "src/test/resources/nba/leagues_NBA_2015_per_game_per_game.csv"
     val rawNbaData = sc.textFile(basketballFile, 2).cache()
@@ -45,15 +44,20 @@ object ArtificialClairvoyance {
      */
     /* mlb */
     // Only get data for 2014 and with games played greater than 100 (to reduce noise)
+    // Used for prediction
     val batters2014 = rawBattingData.map(_.split(","))
-      .filter(line => line(1).equals("2014") && line(5).toInt >= 100)
+      .filter(line => line(1).forall(_.isDigit) && line(1).toInt.equals(2014) && line(5).toInt >= 100)
+    // Get historical data for mlb. This is what we will use to train our models
+    val battersHistorical = rawBattingData.map(_.split(","))
+      .filter(line => line(1).forall(_.isDigit) && line(1).toInt >= 1990 && line(1).toInt <= 2014 && line(5).toInt >= 100)
     // parsedData contains the metrics we are interested in, in vector form for each player.
-    val parsedBattingData = batters2014.map {
+    val trainingBattingData = battersHistorical.map {
       line => Vectors.dense(
         line(8).toDouble,
         line(11).toDouble
       )
     }
+
     /* nba */
     val nba2014 = rawNbaData.map(_.split(","))
       .filter(line => !line(0).equals("Rk") && line(7).toDouble >= 20)
@@ -81,11 +85,38 @@ object ArtificialClairvoyance {
     // Cluster using K-means
     /* mlb */
     val iterationCountMLB = 1000
-    val clusterCountMLB = 10
+    val clusterCountMLB = 20
     // Produce the MLB clustering model
-    val mlbClusterModel = KMeans.train(parsedBattingData, clusterCountMLB, iterationCountMLB)
+    val mlbClusterModel = KMeans.train(trainingBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
     val mlbClusterCenter = mlbClusterModel.clusterCenters map (_.toArray)
+    val mlbPlayers =  battersHistorical.map{
+      line => Array(
+        // Metadata
+        Array(
+          // ID
+          line(0),
+          // Season
+          line(1),
+          // Age
+          line(22),
+          // Group, Predict using the model
+          mlbClusterModel.predict(Vectors.dense(Array(line(8),line(11)).map(_.toDouble)))
+        ),
+        // Actual data
+        Array(
+          // Hit
+          line(8),
+          // HR
+          line(11)
+        )
+      )
+    }
+    // Group every player
+    val mlbGroups = mlbPlayers.groupBy{
+      // group by cluster ID
+      player => player(0)(3)
+    }.collect()
 
     /* nba */
     val iterationCountNBA = 10000
@@ -94,25 +125,41 @@ object ArtificialClairvoyance {
     val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
     // Find centers of each cluster
     val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
-    
-    // Group the actual players into clusters
-    val mlbPlayersByGroup = batters2014.map{
+    /**
+     * Matching algorithm. Given current players and their past seasonal performances,
+     * we match the player's most recent season(s) with a cluster from the previous step.
+     * Then we find players from that cluster who's had a similar age (e.g. +/- 1yrs?) when they had this season type.
+     * Return the current players and their corresponding list of "similar players"
+     * TODO: Find the list of players of that cluster with similar age
+     * TODO: Abstract this out
+     */
+    /* mlb */
+    val mlbPlayers2014ByGroup = batters2014.map{
       line => Array(
         // Metadata
         Array(
+          // ID
           line(0),
-          line(1)
+          // Season
+          line(1),
+          // Age
+          line(22),
+          // Computed Group
+          mlbClusterModel.predict(Vectors.dense(Array(line(8),line(11)).map(_.toDouble)))
         ),
         // Actual data
         Array(
+          // Hit
           line(8),
+          // HR
           line(11)
         )
       )
     }.groupBy{
-      // Predict using the actual data
-      player => mlbClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
+      // Group by the group for later uses
+      player => player(0)(3)
     }.collect()
+
     /* nba */
     val nbaPlayersByGroup = nba2014.map{
       line => Array(
@@ -152,24 +199,43 @@ object ArtificialClairvoyance {
      */
     /* mlb */
     // Print total cost
-    println("Cost of the MLB Model: %s".format(mlbClusterModel.computeCost(parsedBattingData)))
+    println("Cost of the MLB Model: %s".format(mlbClusterModel.computeCost(trainingBattingData)))
     
     // Create a Document to represent the data
     // Print the average stat for each group
     printToFile(new File(mlbCentersOutput)) {
-        p => {
-            p.println("hits,homeruns")
-            mlbClusterCenter.foreach(center => p.println("%s,%s".format(center(0), center(1))))
-        }
+      p => {
+        p.println("hits,homeruns")
+        mlbClusterCenter.foreach(center => p.println("%s,%s".format(center(0), center(1))))
+      }
     }
-
-    printToFile(new File(mlbPlayersOutput)) {
-        p => {
-            p.println("cluster,player,hits,homeruns")
-            for((group, players) <- mlbPlayersByGroup) {
-                players.foreach(player => p.println("%s,%s,%s,%s".format(group, player(0)(0), player(1)(0), player(1)(1))))
-            }
+    printToFile(new File(mlbPlayers2014Output)) {
+      p => {
+        p.println("cluster,player,hits,homeruns,age,similarPlayers")
+        for((group, players) <- mlbPlayers2014ByGroup) {
+          players.foreach(player => p.println("%s,%s,%s,%s,%s,%s".format(
+            group,
+            player(0)(0),
+            player(1)(0),
+            player(1)(1),
+            player(0)(2),
+            mlbPlayers.filter(
+              line => line(0)(3).equals(group)
+                && line(0)(2).toString.toInt >= player(0)(2).toString.toInt - 1
+                && line(0)(2).toString.toInt <= player(0)(2).toString.toInt + 1)
+              .map(similarPlayer => similarPlayer(0)(0))
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+          )))
         }
+      }
+    }
+    printToFile(new File(mlbPlayersHistoricalOutput)) {
+      p => {
+        p.println("cluster,player,season,hits,homeruns,age")
+        for((group, players) <- mlbGroups) {
+          players.foreach(player => p.println("%s,%s,%s,%s,%s,%s".format(group, player(0)(0),player(0)(1), player(1)(0), player(1)(1), player(0)(2))))
+        }
+      }
     }
 
     /* nba */
@@ -185,7 +251,6 @@ object ArtificialClairvoyance {
                 .format(center(0), center(1), center(2), center(3), center(4), center(5), center(6), center(7), center(8))))
         }
     }
-
     printToFile(new File(nbaPlayersOutput)) {
         p => {
             p.println("cluster,player,fg,3pm,ft,reb,ast,stl,blk,tov,pts")
