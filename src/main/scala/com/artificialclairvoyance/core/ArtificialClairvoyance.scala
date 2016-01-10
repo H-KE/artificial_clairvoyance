@@ -24,16 +24,22 @@ object ArtificialClairvoyance {
      * TODO: The filepath should not be hard coded
      */
     /* mlb */
+    // Inputs
     val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting_modified.csv"
     val rawBattingData = sc.textFile(battingFile, 2).cache()
+    // Location of output files... TODO: Remove these when database is running
     val mlbCentersOutput = "src/test/resources/output/mlb_centers.csv"
     val mlbPlayersHistoricalOutput = "src/test/resources/output/mlb_players_historical.csv"
     val mlbPlayers2014Output = "src/test/resources/output/mlb_players2014.csv"
+
     /* nba */
-    val basketballFile = "src/test/resources/nba/leagues_NBA_2015_per_game_per_game.csv"
-    val rawNbaData = sc.textFile(basketballFile, 2).cache()
+    // Inputs
+    val nbaFile = "src/test/resources/nba/nbaPlayerTotals.csv"
+    val rawNbaData = sc.textFile(nbaFile, 2).cache()
+    // Location of output files... TODO: Remove these when database is running
     val nbaCentersOutput = "src/test/resources/output/nba_centers.csv"
-    val nbaPlayersOutput = "src/test/resources/output/nba_players.csv"
+    val nbaPlayersHistoricalOutput = "src/test/resources/output/nba_players_historical.csv"
+    val nbaPlayers2014Output = "src/test/resources/output/nba_players2014.csv"
 
     /**
      * Parse the necessary data from the collected data.
@@ -57,20 +63,65 @@ object ArtificialClairvoyance {
     }
 
     /* nba */
+    // Only get data for 2014 and with games played greater than 20
+    // Used for prediction
     val nba2014 = rawNbaData.map(_.split(","))
-      .filter(line => !line(0).equals("Rk") && line(7).toDouble >= 20)
-    // use FG%(10), 3PM(11), FT%(20), REB(23), AST(24), STL(25), BLK(26), TOV(27), PTS(29)
-    val parsedNbaData = nba2014.map {
+      .filter(line => line(2).forall(_.isDigit) && line(2).toInt.equals(2014) && line(2).toDouble >= 20)
+      .map(line => Array(
+        line(0),// (0)PlayerId,
+        line(1),// (1)Name,
+        line(2),// (2)Season,
+        line(3),// (3)Age,
+        line(4),// (4)Position,
+        line(5),// (5)Team,
+        line(6),// (6)Games,
+        line(7),// (7)MP,
+        (line(8).toDouble*100).toString,// (8)FG%,
+        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
+        (line(10).toDouble*100).toString,// (10)3P%,
+        (line(11).toDouble*100).toString,// (11)FT%,
+        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+      ))
+    // Get historical data for nba. This is what we will use to train our models
+    val nbaHistorical = rawNbaData.map(_.split(","))
+      .filter(line => line(2).forall(_.isDigit) && line(2).toDouble >= 20)
+      .map(line => Array(
+        line(0),// (0)PlayerId,
+        line(1),// (1)Name,
+        line(2),// (2)Season,
+        line(3),// (3)Age,
+        line(4),// (4)Position,
+        line(5),// (5)Team,
+        line(6),// (6)Games,
+        line(7),// (7)MP,
+        (line(8).toDouble*100).toString,// (8)FG%,
+        (line(9).toDouble/line(2).toDouble).toString,// (9)3PM per game,
+        (line(10).toDouble*100).toString,// (10)3P%,
+        (line(11).toDouble*100).toString,// (11)FT%,
+        (line(12).toDouble/line(2).toDouble).toString,// (12)REB per game,
+        (line(13).toDouble/line(2).toDouble).toString,// (13)AST per game,
+        (line(14).toDouble/line(2).toDouble).toString,// (14)STL per game,
+        (line(15).toDouble/line(2).toDouble).toString,// (15)BLK per game,
+        (line(16).toDouble/line(2).toDouble).toString,// (16)TOV per game,
+        (line(17).toDouble/line(2).toDouble).toString// (17)PTS per game
+      ))
+    // use FG%(8), 3PM(9), FT%(11), REB(12), AST(13), STL(14), BLK(15), TOV(16), PTS(17)
+    val trainingNbaData = nbaHistorical.map {
       line => Vectors.dense(
-        line(10).toDouble,
+        line(8).toDouble,
+        line(9).toDouble,
         line(11).toDouble,
-        line(20).toDouble,
-        line(23).toDouble,
-        line(24).toDouble,
-        line(25).toDouble,
-        line(26).toDouble,
-        line(27).toDouble,
-        line(29).toDouble
+        line(12).toDouble,
+        line(13).toDouble,
+        line(14).toDouble,
+        line(15).toDouble,
+        line(16).toDouble,
+        line(17).toDouble
       )
     }
 
@@ -88,7 +139,7 @@ object ArtificialClairvoyance {
     val mlbClusterModel = KMeans.train(trainingBattingData, clusterCountMLB, iterationCountMLB)
     // Find centers of each cluster
     val mlbClusterCenter = mlbClusterModel.clusterCenters map (_.toArray)
-    val mlbPlayers =  battersHistorical.map{
+    val mlbPlayers = battersHistorical.map{
       line => Array(
         // Metadata
         Array(
@@ -116,13 +167,47 @@ object ArtificialClairvoyance {
       player => player(0)(3)
     }.collect()
 
+
     /* nba */
     val iterationCountNBA = 10000
     val clusterCountNBA = 20
     // Produce the NBA clustering model
-    val nbaClusterModel = KMeans.train(parsedNbaData, clusterCountNBA, iterationCountNBA)
+    val nbaClusterModel = KMeans.train(trainingNbaData, clusterCountNBA, iterationCountNBA)
     // Find centers of each cluster
     val nbaClusterCenter = nbaClusterModel.clusterCenters map (_.toArray)
+    val nbaPlayers = nbaHistorical.map{
+      line => Array(
+        // Metadata
+        Array(
+          // ID
+          line(0),
+          // Name
+          line(1),
+          // Season
+          line(2),
+          // Age
+          line(3),
+          // Computed Group
+          nbaClusterModel.predict(Vectors.dense(Array(line(8), line(9), line(11), line(12), line(13), line(14), line(15), line(16), line(17)).map(_.toDouble)))
+        ),
+        // Actual Data
+        Array(
+          line(8),
+          line(9),
+          line(11),
+          line(12),
+          line(13),
+          line(14),
+          line(15),
+          line(16),
+          line(17)
+        )
+      )
+    }
+    // Group every player
+    val nbaGroups = nbaPlayers.groupBy{
+      player => player(0)(4)
+    }.collect()
     /**
      * Matching algorithm. Given current players and their past seasonal performances,
      * we match the player's most recent season(s) with a cluster from the previous step.
@@ -159,28 +244,37 @@ object ArtificialClairvoyance {
     }.collect()
 
     /* nba */
-    val nbaPlayersByGroup = nba2014.map{
+    val nbaPlayers2014ByGroup = nba2014.map{
       line => Array(
         // Metadata
         Array(
-          line(1)
+          // ID
+          line(0),
+          // Name
+          line(1),
+          // Season
+          line(2),
+          // Age
+          line(3),
+          // Computed Group
+          nbaClusterModel.predict(Vectors.dense(Array(line(8), line(9), line(11), line(12), line(13), line(14), line(15), line(16), line(17)).map(_.toDouble)))
         ),
         // Actual Data
         Array(
-          line(10),
+          line(8),
+          line(9),
           line(11),
-          line(20),
-          line(23),
-          line(24),
-          line(25),
-          line(26),
-          line(27),
-          line(29)
+          line(12),
+          line(13),
+          line(14),
+          line(15),
+          line(16),
+          line(17)
         )
       )
     }.groupBy{
       // Predict using the actual data
-      player => nbaClusterModel.predict(Vectors.dense(player(1).map(_.toDouble)))
+      player => player(0)(4)
     }.collect()
 
     /**
@@ -239,24 +333,66 @@ object ArtificialClairvoyance {
 
     /* nba */
     // Print total cost
-    println("Cost of the NBA Model: %s".format(nbaClusterModel.computeCost(parsedNbaData)))
+    println("Cost of the NBA Model: %s".format(nbaClusterModel.computeCost(trainingNbaData)))
 
     // Create a Document to represent the data
     // Print the average stat for each group
     printToFile(new File(nbaCentersOutput)) {
-        p => {
-            p.println("fg,3pm,ft,reb,ast,stl,blk,tov,pts")
-            nbaClusterCenter.foreach(center => p.println("%s,%s,%s,%s,%s,%s,%s,%s,%s"
-                .format(center(0), center(1), center(2), center(3), center(4), center(5), center(6), center(7), center(8))))
-        }
+      p => {
+        p.println("fg,3pm,ft,reb,ast,stl,blk,tov,pts")
+        nbaClusterCenter.foreach(center => p.println("%s,%s,%s,%s,%s,%s,%s,%s,%s"
+          .format(center(0), center(1), center(2), center(3), center(4), center(5), center(6), center(7), center(8))))
+      }
     }
-    printToFile(new File(nbaPlayersOutput)) {
-        p => {
-            p.println("cluster,player,fg,3pm,ft,reb,ast,stl,blk,tov,pts")
-            for((group, players) <- nbaPlayersByGroup) {
-                players.foreach(player => p.println("%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f".format(group, player(0)(0), player(1)(0).toDouble, player(1)(1).toDouble, player(1)(2).toDouble, player(1)(3).toDouble, player(1)(4).toDouble, player(1)(5).toDouble, player(1)(6).toDouble, player(1)(7).toDouble, player(1)(8).toDouble)))
-            }
+    printToFile(new File(nbaPlayers2014Output)) {
+      p => {
+        p.println("cluster,player,playerId,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age,similarPlayers")
+        for((group, players) <- nbaGroups) {
+          players.foreach(player => p.println("%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s,%s".format(
+            group,
+            player(0)(1),
+            player(0)(0),
+            player(1)(0).toString.toDouble,
+            player(1)(1).toString.toDouble,
+            player(1)(2).toString.toDouble,
+            player(1)(3).toString.toDouble,
+            player(1)(4).toString.toDouble,
+            player(1)(5).toString.toDouble,
+            player(1)(6).toString.toDouble,
+            player(1)(7).toString.toDouble,
+            player(1)(8).toString.toDouble,
+            player(0)(3),
+            nbaPlayers
+              .filter(
+                line => line(0)(4).equals(group)
+                  && line(0)(3).toString.toInt >= player(0)(3).toString.toInt - 1
+                  && line(0)(3).toString.toInt <= player(0)(3).toString.toInt + 1)
+              .map(similarPlayer => similarPlayer(0)(0))
+              .reduce((similarPlayerId1, similarPlayerId2) => similarPlayerId1.toString + ";" + similarPlayerId2)
+          )))
         }
+      }
+    }
+    printToFile(new File(nbaPlayersHistoricalOutput)) {
+      p => {
+        p.println("cluster,player,playerId,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age")
+        for((group, players) <- nbaGroups) {
+          players.foreach(player => p.println("%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s".format(
+            group,
+            player(0)(1),
+            player(0)(0),
+            player(1)(0).toString.toDouble,
+            player(1)(1).toString.toDouble,
+            player(1)(2).toString.toDouble,
+            player(1)(3).toString.toDouble,
+            player(1)(4).toString.toDouble,
+            player(1)(5).toString.toDouble,
+            player(1)(6).toString.toDouble,
+            player(1)(7).toString.toDouble,
+            player(1)(8).toString.toDouble,
+            player(0)(3))))
+        }
+      }
     }
 
     // Terminate the spark context
