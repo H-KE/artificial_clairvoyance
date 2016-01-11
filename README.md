@@ -27,6 +27,8 @@ ${SPARK_HOME}/bin/spark-submit --class "com.artificialclairvoyance.core.Artifici
 There is a front-end under 'app' directory
 
 To see host a local version of the app:
+```
 npm install (only do this once)
 bower isntall (only do this once)
 grunt serve (this requires ruby and compass to be isntalled)
+```
