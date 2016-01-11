@@ -1,39 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <link href="../build/nv.d3.css" rel="stylesheet" type="text/css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.2/d3.min.js" charset="utf-8"></script>
-    <script src="../build/nv.d3.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-
-    <style>
-        text {
-            font: 12px sans-serif;
-        }
-        svg {
-            display: block;
-        }
-        html, body, svg {
-            margin: 0px;
-            padding: 0px;
-            height: 100%;
-            width: 100%;
-        }
-        #test1, #test2 {
-            margin: 0px;
-            padding: 0px;
-            height: 100%;
-            width: 100%;
-        }
-    </style>
-</head>
-<body>
-
-<div id="test1" class='with-3d-shadow with-transitions'>
+<div class="chart" id="mlbclusters" class='with-3d-shadow with-transitions'>
     <svg></svg>
 </div>
-<div id="test2" class='with-3d-shadow with-transitions'>
+<div class="chart" id="nbaclusters" class='with-3d-shadow with-transitions'>
     <select id="x_select">
         <option value="fg">Field Goals</option>
         <option value="3pm">3-point Field Goals</option>
@@ -86,9 +54,9 @@
         });
 
         renderChart(mlbChart, 
-               d3.select('#test1 svg'), 
-               "src/test/resources/output/mlb_centers.csv", 
-               "src/test/resources/output/mlb_players.csv",
+               d3.select('#mlbclusters svg'), 
+               "resources/output/mlb_centers.csv", 
+               "resources/output/mlb_players2014.csv",
                "hits", 
                "homeruns")
     });
@@ -117,9 +85,9 @@
         });
 
         renderChart(nbaChart, 
-               d3.select('#test2 svg'), 
-               "src/test/resources/output/nba_centers.csv", 
-               "src/test/resources/output/nba_players.csv",
+               d3.select('#nbaclusters svg'), 
+               "resources/output/nba_centers.csv", 
+               "resources/output/nba_players2014.csv",
                x_axis, 
                y_axis);
     });
@@ -145,6 +113,7 @@
 
             });
             d3.csv(players_csvpath, function(playerData) {
+                console.log(playerData);
                 playerData.forEach(function(d) {
                     d.cluster = +d.cluster;
                     d[x_axis] = +d[x_axis];
@@ -166,22 +135,20 @@
 
     $("#x_select").change(function() {
         renderChart(nbaChart, 
-            d3.select('#test2 svg'), 
-                      "src/test/resources/output/nba_centers.csv", 
-                      "src/test/resources/output/nba_players.csv",
+            d3.select('#nbaclusters svg'), 
+                      "resources/output/nba_centers.csv", 
+                      "resources/output/nba_players2014.csv",
                       $("#x_select").val(), 
                       $("#y_select").val()
             );
     });
     $("#y_select").change(function() {
         renderChart(nbaChart, 
-            d3.select('#test2 svg'), 
-                      "src/test/resources/output/nba_centers.csv", 
-                      "src/test/resources/output/nba_players.csv",
+            d3.select('#nbaclusters svg'), 
+                      "resources/output/nba_centers.csv", 
+                      "resources/output/nba_players2014.csv",
                       $("#x_select").val(), 
                      $("#y_select").val()
             );
     });
 </script>
-</body>
-</html>

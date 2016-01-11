@@ -19,9 +19,9 @@ object Regression {
   	val conf = new SparkConf().setAppName("Regression")
     val sc = new SparkContext(conf)
 
-    val outputFile = "src/test/resources/output/mlb_playsers2014_models.csv"
+    val outputFile = "app/resources/output/mlb_playsers2014_models.csv"
     //Homeruns mapped to age 
-    val currentData = "src/test/resources/output/mlb_players2014.csv"
+    val currentData = "app/resources/output/mlb_players2014.csv"
 
 
   	val historicalData = sc.textFile("src/test/resources/lahman-csv_2015-01-24/Batting_modified.csv")
@@ -37,7 +37,7 @@ object Regression {
 
 	
 	val pw = new PrintWriter(new File(outputFile))
-	pw.println("playerID, intercept, weight")
+	pw.println("playerID,intercept,weight")
 	//only want to model 5 players for testing, read 5 lines and stuff in array
 	var lines = new Array[String](20)
 
@@ -52,7 +52,7 @@ object Regression {
   				LabeledPoint(parts(11).toDouble, Vectors.dense(parts(22).toDouble))
 			}.cache()
 			val model = regression.run(labeledPoints)
-			pw.println(parts(1) + ' ' + model.intercept.toString + ' ' + model.weights(0).toString)
+			pw.println(parts(1) + ',' + model.intercept.toString + ',' + model.weights(0).toString)
 		}
 
   	}
