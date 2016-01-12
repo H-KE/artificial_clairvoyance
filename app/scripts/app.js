@@ -15,7 +15,8 @@ angular
     'ngResource',
     'ngRoute',
     'ngSanitize',
-    'ngTouch'
+    'ngTouch',
+    'ngTable'
   ])
   .config(function ($routeProvider) {
     $routeProvider
@@ -26,7 +27,13 @@ angular
       })
       .when('/clusters', {
         templateUrl: 'views/clusters.html',
+        controller: 'ClusterCtrl',
         controllerAs: 'cluster'
+      })
+      .when('/models', {
+        templateUrl: 'views/models.html',
+        controller: 'ModelCtrl',
+        controllerAs: 'model'
       })
       .when('/about', {
         templateUrl: 'views/about.html',

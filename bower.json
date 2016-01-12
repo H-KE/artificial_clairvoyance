@@ -10,7 +10,9 @@
     "angular-route": "^1.4.0",
     "angular-sanitize": "^1.4.0",
     "angular-touch": "^1.4.0",
-    "nvd3": "^1.8.1"
+    "angular-bootstrap": "^0.13.4",
+    "nvd3": "^1.8.1",
+    "ng-table": "^0.8.3"
   },
   "devDependencies": {
     "angular-mocks": "^1.4.0"
