@@ -1,0 +1,7 @@
+<table ng-table="model.tableParams" show-filter="true" class="table table-bordered table-striped">
+	<tr ng-repeat="row in $data track by row.name">
+		<td title="'Player'" sortable="'name'">{{row.name}}</td>
+		<td title="'Intercept'" sortable="'intercept'">{{row.intercept}}</td>
+		<td title="'Weight'" sortable="'weight'">{{row.weight}}</td>
+	</tr>
+</table>

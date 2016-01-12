@@ -28,18 +28,18 @@ object ArtificialClairvoyance {
     val battingFile = "src/test/resources/lahman-csv_2015-01-24/Batting_modified.csv"
     val rawBattingData = sc.textFile(battingFile, 2).cache()
     // Location of output files... TODO: Remove these when database is running
-    val mlbCentersOutput = "src/test/resources/output/mlb_centers.csv"
-    val mlbPlayersHistoricalOutput = "src/test/resources/output/mlb_players_historical.csv"
-    val mlbPlayers2014Output = "src/test/resources/output/mlb_players2014.csv"
+    val mlbCentersOutput = "app/resources/output/mlb_centers.csv"
+    val mlbPlayersHistoricalOutput = "app/resources/output/mlb_players_historical.csv"
+    val mlbPlayers2014Output = "app/resources/output/mlb_players2014.csv"
 
     /* nba */
     // Inputs
     val nbaFile = "src/test/resources/nba/nbaPlayerTotals.csv"
     val rawNbaData = sc.textFile(nbaFile, 2).cache()
     // Location of output files... TODO: Remove these when database is running
-    val nbaCentersOutput = "src/test/resources/output/nba_centers.csv"
-    val nbaPlayersHistoricalOutput = "src/test/resources/output/nba_players_historical.csv"
-    val nbaPlayers2014Output = "src/test/resources/output/nba_players2014.csv"
+    val nbaCentersOutput = "app/resources/output/nba_centers.csv"
+    val nbaPlayersHistoricalOutput = "app/resources/output/nba_players_historical.csv"
+    val nbaPlayers2014Output = "app/resources/output/nba_players2014.csv"
 
     /**
      * Parse the necessary data from the collected data.
