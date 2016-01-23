@@ -4,7 +4,8 @@ angular.module('artificialClairvoyanceApp')
   .controller('ClusterCtrl', function ($scope) {
 
   	$scope.chartToggle = {
-  		type: "MLB"
+  		type: "MLB",
+  		legend: false
   	};
         // create the charts	
     var mlbChart;
@@ -48,102 +49,134 @@ angular.module('artificialClairvoyanceApp')
                     });
                 });
 
+  				chart.xAxis.axisLabel(x_axis);
+  				chart.yAxis.axisLabel(y_axis);
+
                 selector.datum(parsedData).call(chart);
                 nv.utils.windowResize(chart.update);
             });
         });
     }
 
-  	$scope.$watch('chartToggle.type', function() {
+  	$scope.$watch('chartToggle', function() {
   		if ($scope.chartToggle.type === "MLB") {
   			nv.addGraph(function() {
-	        mlbChart = nv.models.scatterChart()
-	            .showDistX(true)
-	            .showDistY(true)
-	            .useVoronoi(true)
-	            .color(d3.scale.category20().range())
-	            .duration(300)
-	            .showLegend(false)
-	        ;
-	        mlbChart.dispatch.on('renderEnd', function(){
-	            console.log('render complete');
-	        });
-	        mlbChart.xAxis.tickFormat(d3.format('.02f'));
-	        mlbChart.yAxis.tickFormat(d3.format('.02f'));
-	        mlbChart.tooltip.contentGenerator(function(data) {
-	            if (data.point.name) {
-	                return data.point.name + ": " + data.point.x + ", " + data.point.y;
-	            } else {
-	                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y;
-	            }
-	        });
+  				if ($scope.chartToggle.legend) {
+			        mlbChart = nv.models.scatterChart()
+			            .useVoronoi(true)
+			            .color(d3.scale.category20().range())
+			            .duration(300)
+			            .showLegend(true)
+			        ;
+  				} else {
+  					mlbChart = nv.models.scatterChart()
+			            .useVoronoi(true)
+			            .color(d3.scale.category20().range())
+			            .duration(300)
+			            .showLegend(false)
+			        ;
+  				}
 
-	        renderChart(mlbChart, 
-	               d3.select('#mlbclusters svg'), 
-	               "resources/output/mlb_centers.csv", 
-	               "resources/output/mlb_players2014.csv",
-	               "hits", 
-	               "homeruns");
-    });
+  				mlbChart.xAxis.axisLabel('Hits');
+  				mlbChart.yAxis.axisLabel('Homeruns');
+
+		        mlbChart.dispatch.on('renderEnd', function(){
+		            console.log('render complete');
+		        });
+
+		        mlbChart.xAxis.tickFormat(d3.format('.02f'));
+		        mlbChart.yAxis.tickFormat(d3.format('.02f'));
+
+		        mlbChart.tooltip.contentGenerator(function(data) {
+		            if (data.point.name) {
+		                return data.point.name + ": " + data.point.x + ", " + data.point.y;
+		            } else {
+		                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y;
+		            }
+		        });
+
+		        renderChart(mlbChart, 
+		               d3.select('#chart_svg'), 
+		               "resources/output/mlb_centers.csv", 
+		               "resources/output/mlb_players2014.csv",
+		               "hits", 
+		               "homeruns");
+    		});
   		} else if ($scope.chartToggle.type === "NBA") {
   			nv.addGraph(function() {
-	        var x_axis = $("#x_select").val();
-	        var y_axis = $("#y_select").val();
+		        var x_axis = $("#x_select").val();
+		        var y_axis = $("#y_select").val();
 
-	        nbaChart = nv.models.scatterChart()
-	            .showDistX(true)
-	            .showDistY(true)
-	            .useVoronoi(true)
-	            .color(d3.scale.category20().range())
-	            .duration(300)
-	            .showLegend(false)
-	        ;
-	        nbaChart.dispatch.on('renderEnd', function(){
-	            console.log('render complete');
-	        });
-	        nbaChart.xAxis.tickFormat(d3.format('.02f'));
-	        nbaChart.yAxis.tickFormat(d3.format('.02f'));
+		        if ($scope.chartToggle.legend) {
+			        nbaChart = nv.models.scatterChart()
+			            .useVoronoi(true)
+			            .color(d3.scale.category20().range())
+			            .duration(300)
+			            .showLegend(true)
+			        ;
+  				} else {
+  					nbaChart = nv.models.scatterChart()
+			            .useVoronoi(true)
+			            .color(d3.scale.category20().range())
+			            .duration(300)
+			            .showLegend(false)
+			        ;
+  				}
 
-	        nbaChart.tooltip.contentGenerator(function(data) {
-	            if (data.point.name) {
-	                return data.point.name + ": " + data.point.x + ", " + data.point.y;
-	            } else {
-	                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y;
-	            }
-	        });
+  				nbaChart.xAxis.axisLabel(x_axis);
+  				nbaChart.yAxis.axisLabel(y_axis);
 
-	        renderChart(nbaChart, 
-	               d3.select('#nbaclusters svg'), 
-	               "resources/output/nba_centers.csv", 
-	               "resources/output/nba_players2014.csv",
-	               x_axis, 
-	               y_axis);
-    });
-  		}
-  	});
+		        nbaChart.dispatch.on('renderEnd', function(){
+		            console.log('render complete');
+		        });
+
+		        nbaChart.xAxis.tickFormat(d3.format('.02f'));
+		        nbaChart.yAxis.tickFormat(d3.format('.02f'));
+
+		        nbaChart.tooltip.contentGenerator(function(data) {
+		            if (data.point.name) {
+		                return data.point.name + ": " + data.point.x + ", " + data.point.y;
+		            } else {
+		                return "Cluster " + data.point.center + " Center: " + data.point.x + ", " + data.point.y;
+		            }
+		        });
+
+		        renderChart(nbaChart, 
+		               d3.select('#chart_svg'), 
+		               "resources/output/nba_centers.csv", 
+		               "resources/output/nba_players2014.csv",
+		               x_axis, 
+		               y_axis);
+
+
+	  	
+			    $("#x_select").change(function() {
+			    	console.log("CHANGE X");
+			        renderChart(nbaChart, 
+			            d3.select('#chart_svg'), 
+			                      "resources/output/nba_centers.csv", 
+			                      "resources/output/nba_players2014.csv",
+			                      $("#x_select").val(), 
+			                      $("#y_select").val()
+			            );
+			    });
+			    $("#y_select").change(function() {
+			    	console.log("CHANGE Y");
+			        renderChart(nbaChart, 
+			            d3.select('#chart_svg'), 
+			                      "resources/output/nba_centers.csv", 
+			                      "resources/output/nba_players2014.csv",
+			                      $("#x_select").val(), 
+			                      $("#y_select").val()
+			            );
+	    		});
+	    	});
+		}
+  	}, true);
 
     /*
 	 * Watch for changes in the selectors and render the chart accordingly 
      */
-
-    $("#x_select").change(function() {
-        renderChart(nbaChart, 
-            d3.select('#nbaclusters svg'), 
-                      "resources/output/nba_centers.csv", 
-                      "resources/output/nba_players2014.csv",
-                      $("#x_select").val(), 
-                      $("#y_select").val()
-            );
-    });
-    $("#y_select").change(function() {
-        renderChart(nbaChart, 
-            d3.select('#nbaclusters svg'), 
-                      "resources/output/nba_centers.csv", 
-                      "resources/output/nba_players2014.csv",
-                      $("#x_select").val(), 
-                      $("#y_select").val()
-            );
-    });
 
     $('#mlbToggle').on('click', function () {
     	$scope.chartToggle.type = "MLB";
@@ -151,4 +184,8 @@ angular.module('artificialClairvoyanceApp')
     $('#nbaToggle').on('click', function () {
     	$scope.chartToggle.type = "NBA";
   	})
+    $('#legendToggle').on('click', function () {
+    	$('#chart_svg').empty();
+    	$scope.chartToggle.legend = !$scope.chartToggle.legend;
+    })
   });

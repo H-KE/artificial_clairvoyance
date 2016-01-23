@@ -12,7 +12,8 @@
     "angular-touch": "^1.4.0",
     "angular-bootstrap": "^0.13.4",
     "nvd3": "^1.8.1",
-    "ng-table": "^0.8.3"
+    "ng-table": "^0.8.3",
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "angular-mocks": "^1.4.0"

@@ -16,11 +16,11 @@ angular.module('artificialClairvoyanceApp')
 
           self.tableParams = new NgTableParams({
             page: 1, // show first page
-            count: 10 // count per page
+            count: 10, // count per page
+            group: "name"
           },  {
             data: dataset
           });
-          console.log(self.tableParams);
       });
 
   });
