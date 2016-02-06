@@ -8,7 +8,9 @@ import org.apache.spark.mllib.regression.LabeledPoint
 import org.apache.spark.mllib.regression.LinearRegressionModel
 import org.apache.spark.mllib.regression.LinearRegressionWithSGD
 import org.apache.spark.ml.feature.PolynomialExpansion
+import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 import org.apache.spark.sql.types.{StructType,StructField,StringType,IntegerType,FloatType};
 import ArtificialClairvoyance._
@@ -29,7 +31,7 @@ object Regression extends Serializable{
     val currentData = "app/resources/output/mlb_players2014.csv"
 
     val polynomialExpansion = new PolynomialExpansion()
-	.setInputCol("age")
+	.setInputCol("age_vector")
 	.setOutputCol("polyAge")
 	.setDegree(3)
 
@@ -91,7 +93,18 @@ object Regression extends Serializable{
 	//val similarPlayerHistorySQL = sqlContext.sql("SELECT Players.player, HistoricalData.* FROM HistoricalData LEFT JOIN Players ON HistoricalData.playerID=Players.similar")
 
 	val similarPlayerHistory = filteredExpandedPlayersDF.select("player", "similar").join(filteredHistoricalData, filteredExpandedPlayersDF("similar")===filteredHistoricalData("playerID"), "left").drop("playerID").na.drop()
+  
+  //convert age column to double type in data frame
+  val toDouble = udf[Double, String]( _.toDouble)
 
+  val similarPlayerHistory2 = similarPlayerHistory.withColumn("Age", toDouble(similarPlayerHistory("age")))
+
+  val assembler = new VectorAssembler()
+  .setInputCols(Array("Age"))
+  .setOutputCol("age_vector")
+
+  
+  val allSimilarPlayerHistory = assembler.transform(similarPlayerHistory2)
 
 	//val similarPlayerHistory = similarPlayerHistorySQL.collect()
 	//similarPlayerHistory.foreach(println)
@@ -99,41 +112,45 @@ object Regression extends Serializable{
 	val players = playersDF.select("player")
 	val player = players.first()
 
-	val polySimilar = polynomialExpansion.transform(similarPlayerHistory)
+	val polySimilar = polynomialExpansion.transform(allSimilarPlayerHistory)
 
-	polySimilar.show()
 
-	players.show()
+  //IT WORKS HERE
+  val similarPlayers = polySimilar.filter($"player" === player(0))
+
+  similarPlayers.show()
+
+  polySimilar.show()
+
+
+  /*******************
+  filtering throws exception while looping
+  ****************/
 
 	for (player <- players) {
-		try {
-			val similarPlayers = similarPlayerHistory.filter($"player" === player.getString(0))
+    try{
+			println(player(0))
+      val similarPlayers = polySimilar.filter("player = " + player(0))
+      println(similarPlayers.count)
+      //print(similarPlayers.getDouble(11))
 
-			// val polySimilar = polynomialExpansion.transform(similarPlayers)
-			// polySimilar.show()
-
-			// val labeledPoints = polySimilar.map { similar =>
-			// 										val HR:Option[Double] = Some(11)
-			// 										println(HR)
-			// 										val polyAge:Option[Double] = Some(23)
-			// 										println(polyAge)
-			// 										val vecAge = Vectors.dense(polyAge.get.asInstanceOf[Double])
-			// 										LabeledPoint(HR.get.asInstanceOf[Double], vecAge)
-			// 									}
-
+			 //val labeledPoints = similarPlayers.map { similar =>
+       //                   println(similar)
+			 										//LabeledPoint(similar.getDouble(11), Vectors.dense(similar.get(26)))
+			       							
+      // println(labeledPoints.count)
 			// println(labeledPoints.count)
 
 			// val model = regression.run(labeledPoints)
 
 			//println(model.intercept.toString + ',' + model.weights(0).toString)
-		}
-		catch {
-			case e:Exception =>
-				println(player)
-		}
+		}catch{
+      case e: Exception => 
+        //println("error")
+    }
 	}
 
-	pw.close()
+	//pw.close()
 
 	sc.stop()
 
