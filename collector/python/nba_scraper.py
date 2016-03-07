@@ -21,6 +21,7 @@ with open('/tmp/artificialclairvoyance/nba/nbaPlayerTotals.csv', 'w') as out:
 		soup = BeautifulSoup(br.open("http://www.basketball-reference.com/leagues/NBA_" + str(year) + "_totals.html"),  "html.parser")
 		table = soup.find('table', attrs={'id':'totals'})
 		rows = table.find_all('tr', attrs={'class':'full_table'})
+		print "Scraping " + str(year) + " totals"
 		for row in rows:
 			cols = row.find_all('td')
 			player = []
