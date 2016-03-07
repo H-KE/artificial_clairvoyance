@@ -110,28 +110,56 @@ object Regression extends Serializable{
 	//similarPlayerHistory.foreach(println)
 
 	val players = playersDF.select("player")
-	val player = players.first()
+
 
 	val polySimilar = polynomialExpansion.transform(allSimilarPlayerHistory)
 
 
   //IT WORKS HERE
-  val similarPlayers = polySimilar.filter($"player" === player(0))
+  val allSimilarPlayers_RDD = polySimilar.rdd
 
-  similarPlayers.show()
+  /*val allSimilarPlayers_RDD_transformed = allSimilarPlayers_RDD.map{
+    line =>
+    Array(
+      line(0),
+      Array(
+          line.toSeq.toArray.slice(1,line.length)          
+        )
+      )
+  }.collect().reduce()*/
 
-  polySimilar.show()
+  val grouped_allSimilarPlayers = allSimilarPlayers_RDD.groupBy{
+    player => player(0)
+    }.collect()
+  
 
 
+
+
+  for((player, similarPlayers) <- grouped_allSimilarPlayers) {
+    //println(similarPlayers)
+   val labeledPoints = similarPlayers.map { parts =>
+          LabeledPoint(parts.getDouble(11), Vectors.dense(parts.get(26).asInstanceOf[Array[Double]]))
+      }.cache()
+
+
+    val model = regression.run(labeledPoints)
+
+    println(model.intercept.toString + ',' + model.weights(0).toString + ',' + model.weights(1).toString + ',' + model.weights(2).toString)
+  }
+
+  //grouped_allSimilarPlayers.foreach(line => println(line.mkString))
   /*******************
   filtering throws exception while looping
   ****************/
+  //allSimilarPlayers_Reduced = allSimilarPlayers_RDD_transformed.reduceB
 
-	for (player <- players) {
-    try{
-			println(player(0))
-      val similarPlayers = polySimilar.filter("player = " + player(0))
-      println(similarPlayers.count)
+	//for (player <- players) {
+    //try{
+
+      //val similarPlayers = allSimilarPlayers_RDD.filter( line => line(0).toString().equals(player(0).toString()))
+      //println(similarPlayers.count)
+      //similarPlayers.foreach(println)
       //print(similarPlayers.getDouble(11))
 
 			 //val labeledPoints = similarPlayers.map { similar =>
@@ -144,11 +172,11 @@ object Regression extends Serializable{
 			// val model = regression.run(labeledPoints)
 
 			//println(model.intercept.toString + ',' + model.weights(0).toString)
-		}catch{
-      case e: Exception => 
-        //println("error")
-    }
-	}
+		//}catch{
+      //case e: Exception => 
+        //println(e)
+    //}
+	//}
 
 	//pw.close()
 
