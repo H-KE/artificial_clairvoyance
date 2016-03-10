@@ -21,6 +21,11 @@ You can use the spark-submit script in the Spark bin directory:
 ```
 ${SPARK_HOME}/bin/spark-submit --class "com.artificialclairvoyance.core.ArtificialClairvoyance" --master local[4] target/scala-2.10/artificial-clairvoyance_2.10-0.0.1.jar
 ```
+Or if you have your SPARK_HOME set, you can run it using the run.sh script under /bin
+```
+export SPARK_HOME='<SPARK LOCATION>'
+./bin/run.sh
+```
 
 ## Application
 
