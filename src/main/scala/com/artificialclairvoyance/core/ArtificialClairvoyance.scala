@@ -2,10 +2,15 @@ package com.artificialclairvoyance.core
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
+import org.apache.spark.ml.feature.{PolynomialExpansion, VectorAssembler}
 import org.apache.spark.mllib.clustering.KMeans
-import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.mllib.linalg.{Vector, Vectors}
 
 import java.io._
+
+import org.apache.spark.mllib.regression.{LabeledPoint, LinearRegressionWithSGD}
+import org.apache.spark.sql.{functions, SQLContext}
+import org.apache.spark.sql.functions._
 
 /**
  * Top level application container.
@@ -19,8 +24,7 @@ object ArtificialClairvoyance {
     val sc = new SparkContext(conf)
 
     /**
-     * Collect data
-     * TODO: This should be abstracted to a data collector (specifies where the data comes from)
+     * Input collected data
      * TODO: The filepath should not be hard coded
      */
     /* mlb */
@@ -63,10 +67,9 @@ object ArtificialClairvoyance {
     }
 
     /* nba */
-    // Only get data for 2014 and with games played greater than 20
-    // Used for prediction
+    // Only get data for 2014 and with games played greater than 40
     val nba2014 = rawNbaData.map(_.split(","))
-      .filter(line => line(2).forall(_.isDigit) && line(2).toInt.equals(2015) && line(6).toDouble >= 20)
+      .filter(line => line(2).forall(_.isDigit) && line(2).toInt.equals(2015) && line(6).toDouble >= 40)
       .map(line => Array(
         line(0),// (0)PlayerId,
         line(1),// (1)Name,
@@ -208,6 +211,7 @@ object ArtificialClairvoyance {
     val nbaGroups = nbaPlayers.groupBy{
       player => player(0)(4)
     }.collect()
+
     /**
      * Matching algorithm. Given current players and their past seasonal performances,
      * we match the player's most recent season(s) with a cluster from the previous step.
@@ -278,21 +282,14 @@ object ArtificialClairvoyance {
     }.collect()
 
     /**
-     * Regression Algorithm.
-     * Create a predictive model of each player from historical careers of their "similar players"
-     * TODO: Implement it
-     * TODO: abstract
-     */
-
-    /**
-     * Output the results
+     * Output the results so far
      * TODO: Print for now, but save it to some output file when it's ready
      * TODO: optional... visualize the data (for 2-d data)
      */
     /* mlb */
     // Print total cost
     println("Cost of the MLB Model: %s".format(mlbClusterModel.computeCost(trainingBattingData)))
-    
+
     // Create a Document to represent the data
     // Print the average stat for each group
     printToFile(new File(mlbCentersOutput)) {
@@ -303,7 +300,7 @@ object ArtificialClairvoyance {
     }
     printToFile(new File(mlbPlayers2014Output)) {
       p => {
-        p.println("cluster,player,hits,homeruns,age,similarPlayers")
+        p.println("cluster,playerId,hits,homeruns,age,similarPlayers")
         for((group, players) <- mlbPlayers2014ByGroup) {
           players.foreach(player => p.println("%s,%s,%s,%s,%s,%s".format(
             group,
@@ -324,7 +321,7 @@ object ArtificialClairvoyance {
     }
     printToFile(new File(mlbPlayersHistoricalOutput)) {
       p => {
-        p.println("cluster,player,season,hits,homeruns,age")
+        p.println("cluster,historicalPlayerId,season,hits,homeruns,historicalAge")
         for((group, players) <- mlbGroups) {
           players.foreach(player => p.println("%s,%s,%s,%s,%s,%s".format(group, player(0)(0),player(0)(1), player(1)(0), player(1)(1), player(0)(2))))
         }
@@ -375,7 +372,7 @@ object ArtificialClairvoyance {
     }
     printToFile(new File(nbaPlayersHistoricalOutput)) {
       p => {
-        p.println("cluster,player,playerId,season,fg,3pm,ft,reb,ast,stl,blk,tov,pts,age")
+        p.println("cluster,historicalPlayer,historicalPlayerId,season,fg,3pm,ft,reb,ast,stl,blk,tov,pts,historicalAge")
         for((group, players) <- nbaGroups) {
           players.foreach(player => p.println("%s,%s,%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%s".format(
             group,
@@ -396,6 +393,15 @@ object ArtificialClairvoyance {
       }
     }
 
+
+
+    /**
+     * Regression Algorithm.
+     * Create a predictive model of each player from historical careers of their "similar players"
+     */
+    regression(sc, nbaPlayers2014Output, nbaPlayersHistoricalOutput, "app/resources/output/nba_predictions", "pts")
+    //regression(sc, mlbPlayers2014Output, mlbPlayersHistoricalOutput, "app/resources/output/mlb_players2014_models_poly.csv")
+
     // Terminate the spark context
     sc.stop()
   }
@@ -403,6 +409,90 @@ object ArtificialClairvoyance {
   def printToFile(f: java.io.File)(op: java.io.PrintWriter => Unit) {
     val p = new java.io.PrintWriter(f)
     try { op(p) } finally { p.close() }
+  }
+
+  def regression(sc:SparkContext, currentFile:String, historicalFile:String, outputDirectory:String, statToPredict:String): Unit ={
+    val sqlContext = new SQLContext(sc)
+
+    // Read in historical data into rdd/df
+    val historicalPlayers = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").load(historicalFile).na.drop()
+    val currentPlayers = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").load(currentFile)
+      .explode("similarPlayers", "similarPlayer") {player: String => player.split(";")}
+      .drop("similarPlayers")
+      .na.drop()
+
+    // Join the historical players with the current players
+    val similarPlayerHistory = currentPlayers
+      .select("playerId", "age", "similarPlayer")
+      .join(
+        historicalPlayers,
+        currentPlayers("similarPlayer")===historicalPlayers("historicalPlayerId"),
+        "left")
+      .na.drop()
+
+    // Convert age column to double type in data frame
+    // Also do polynomial expansion & normalize
+    // Equation for 3rd degree poly would look like (x+ (x^2)/10^2 + (X^3)/10^3 )
+    val toDouble = udf[Double, String]( _.toDouble)
+    val squareNormed = udf((x:Double) => math.pow(x, 2)/100)
+    val cubeNormed = udf((x:Double) => math.pow(x, 3)/1000)
+    val similarPlayerHistoryPoly = similarPlayerHistory
+      .withColumn("historicalAgeDouble", toDouble(similarPlayerHistory("historicalAge")))
+      .withColumn("historicalAgeDouble2", squareNormed(similarPlayerHistory("historicalAge")))
+      .withColumn("historicalAgeDouble3", cubeNormed(similarPlayerHistory("historicalAge")))
+      .drop("historicalAge")
+
+    // Convert age column into vector.
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("historicalAgeDouble", "historicalAgeDouble2", "historicalAgeDouble3"))
+      .setOutputCol("ageVector")
+    val allSimilarPlayerHistory = assembler.transform(similarPlayerHistoryPoly)
+    allSimilarPlayerHistory.orderBy("playerId").show(100)
+
+    // Convert back to RDD for ease of use
+    val allSimilarPlayers_RDD = allSimilarPlayerHistory
+      .select("playerId", "age", statToPredict, "ageVector")
+      .rdd
+    // Group historical data by player
+    val grouped_allSimilarPlayers = allSimilarPlayers_RDD.groupBy{
+      player => player(0)
+    }.collect()
+
+    // loop through each current player
+    // TODO: Make this parallel, needs to aggregate better
+    for((player, similarPlayers) <- grouped_allSimilarPlayers) {
+
+      //similarPlayers is an iterable, convert to RDD
+      val similarPlayers_RDD = sc.parallelize(similarPlayers.toList)
+      val labeledPoints = similarPlayers_RDD.map { parts =>
+        LabeledPoint(parts(2).toString.toDouble, parts(3).asInstanceOf[Vector])
+      }
+
+      //create regression object
+      val regression = new LinearRegressionWithSGD().setIntercept(true)
+      regression.optimizer.setStepSize(0.001)
+      regression.optimizer.setNumIterations(1000)
+      //run the regression
+      val model = regression.run(labeledPoints)
+
+      // Save Prediction & Weights
+      val playerSample = similarPlayers.toList.head
+      val age = playerSample.getString(1).toDouble
+      val array = Array(age, math.pow(age, 2)/100, math.pow(age, 3)/1000)
+      printToFile(new File(outputDirectory + "/" + statToPredict + "_" + player)) {
+        p => {
+          p.println("playerId," + statToPredict + ",intercept,weights")
+          p.println("%s,%s,%s,%s,%s,%s".format(
+            player,
+            model.predict(Vectors.dense(array)).toString,
+            model.intercept.toString,
+            model.weights(0).toString,
+            model.weights(1).toString,
+            model.weights(2).toString
+          ))
+        }
+      }
+    }
   }
 }
 
