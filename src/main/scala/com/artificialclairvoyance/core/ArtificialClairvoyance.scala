@@ -39,10 +39,6 @@ object ArtificialClairvoyance {
     val conf = new SparkConf().setAppName("Artificial Clairvoyance")
     val sc = new SparkContext(conf)
 
-    /**
-     * Input collected data
-     * TODO: The filepath should not be hard coded
-     */
     /* mlb */
     // Inputs
     val rawBattingData = sc.textFile(battingFile, 2).cache()
@@ -64,6 +60,9 @@ object ArtificialClairvoyance {
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/nba_players_historical2.csv")
+
+    val matchedCurrentPlayers = matchCurrentPlayers(clusteredNbaPlayers, 2015)
+    matchedCurrentPlayers.show(100)
 
 
 //    /**
@@ -586,12 +585,13 @@ object ArtificialClairvoyance {
     val currentPlayers = historicalPlayers.filter("Season = " + finalSeason)
 
     val similarPlayerHistory = currentPlayers
-      .select("playerId", "Age")
-      .withColumnRenamed("playerId", "currentPlayerId")
-      .withColumnRenamed("Age", "currentPlayerAge")
+      .select("PlayerId", "Age", "Cluster")
+      .withColumnRenamed("PlayerId", "CurrentPlayerId")
+      .withColumnRenamed("Age", "CurrentPlayerAge")
+      .withColumnRenamed("Cluster", "CurrentPlayerCluster")
       .join(
         historicalPlayers,
-        currentPlayers("similarPlayer")===historicalPlayers("historicalPlayerId"),
+        currentPlayers("CurrentPlayerCluster")===historicalPlayers("Cluster"),
         "left")
       .na.drop()
 ////            nbaPlayers
@@ -599,6 +599,7 @@ object ArtificialClairvoyance {
 //                  line => line(0)(4).equals(group)
 //                    && line(0)(3).toString.toInt >= player(0)(3).toString.toInt - 1
 //                    && line(0)(3).toString.toInt <= player(0)(3).toString.toInt + 1)
+    similarPlayerHistory
   }
 
   /********************************************************************************************************************
