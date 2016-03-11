@@ -52,17 +52,17 @@ object ArtificialClairvoyance {
       .select("Cluster", "PlayerId", "Age", "Season", "Games", "HR", "H")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/mlb_players_historical2.csv")
+      .save("app/resources/output/mlb_players_historical2")
 
     val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 40, 40, 5000)
     clusteredNbaPlayers
       .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB", "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/nba_players_historical2.csv")
+      .save("app/resources/output/nba_players_historical2")
 
     val matchedCurrentPlayers = matchCurrentPlayers(clusteredNbaPlayers, 2015)
-    matchedCurrentPlayers.show(100)
+    matchedCurrentPlayers.select("CurrentPlayerId", "CurrentPlayerAge", "CurrentPlayerCluster", "PlayerId", "Name", "Age", "Season", "Cluster").show(100)
 
 
 //    /**
@@ -583,15 +583,17 @@ object ArtificialClairvoyance {
    */
   def matchCurrentPlayers(historicalPlayers:DataFrame, finalSeason:Int): DataFrame = {
     val currentPlayers = historicalPlayers.filter("Season = " + finalSeason)
-
-    val similarPlayerHistory = currentPlayers
       .select("PlayerId", "Age", "Cluster")
       .withColumnRenamed("PlayerId", "CurrentPlayerId")
       .withColumnRenamed("Age", "CurrentPlayerAge")
       .withColumnRenamed("Cluster", "CurrentPlayerCluster")
+
+    val similarPlayerHistory = currentPlayers
       .join(
         historicalPlayers,
-        currentPlayers("CurrentPlayerCluster")===historicalPlayers("Cluster"),
+        currentPlayers("CurrentPlayerCluster")===historicalPlayers("Cluster") &&
+          currentPlayers("CurrentPlayerAge") <= historicalPlayers("Age") + 1 &&
+          currentPlayers("CurrentPlayerAge") >= historicalPlayers("Age") - 1,
         "left")
       .na.drop()
 ////            nbaPlayers
