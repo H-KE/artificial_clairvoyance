@@ -7,10 +7,10 @@ folder_list = ["mlb_players_current2",
 				"nba_players_current2",
 				"nba_players_historical2"]
 
-output_files  = ["mlb_players_current2.csv", 
-"mlb_players_historical2.csv", 
-"nba_players_current2.csv", 
-"nba_players_historical2.csv"]
+output_files  = ["mlb_players_current.csv", 
+"mlb_players_historical.csv", 
+"nba_players_current.csv", 
+"nba_players_historical.csv"]
 
 
 for folder, output_file in zip(folder_list, output_files):
