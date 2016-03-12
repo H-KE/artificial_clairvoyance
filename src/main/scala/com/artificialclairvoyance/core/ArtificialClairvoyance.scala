@@ -12,6 +12,8 @@ import org.apache.spark.mllib.regression.{LabeledPoint, LinearRegressionWithSGD}
 import org.apache.spark.sql.{DataFrame, functions, SQLContext}
 import org.apache.spark.sql.functions._
 
+import scala.collection.mutable.ListBuffer
+
 /**
  * Top level application container.
  * This will set up the necessary context and invoke our application
@@ -72,21 +74,30 @@ object ArtificialClairvoyance {
       .option("header", "true")
       .save("app/resources/output/nba_players_current2")
 
-//    val nba_prediction = nbaRegression(sc, matchedCurrentNbaPlayers, clusteredNbaPlayers)
-//    printToFile(new File("app/resources/output/nba_predictions.csv")) {
-//      p => {
-//        p.println("PlayerId,PTS")
-//        nba_prediction.foreach(line =>
-//          p.println("%s,%s"
-//            .format(
-//              line(0).toString,
-//              line(1).toString
-//            )
-//          )
-//        )
-//      }
-//    }
 
+    val nbaPrediction = nbaRegression(sc, matchedCurrentNbaPlayers, clusteredNbaPlayers)
+    printToFile(new File("app/resources/output/nba_predictions.csv")) {
+      p => {
+        p.println("PlayerId,PTS,AST,REB,STL,BLK,TOV,3PM,FG%,3P%,FT%")
+        nbaPrediction.foreach(line =>
+          p.println("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
+            .format(
+              line(0).toString,
+              line(1).toString,
+              line(2).toString,
+              line(3).toString,
+              line(4).toString,
+              line(5).toString,
+              line(6).toString,
+              line(7).toString,
+              line(8).toString,
+              line(9).toString,
+              line(10).toString
+            )
+          )
+        )
+      }
+    }
 
     // Terminate the spark context
     sc.stop()
@@ -301,7 +312,7 @@ object ArtificialClairvoyance {
       player => player(0)
     }.collect()
 
-    val predictions = List()
+    val predictions = ListBuffer[Array[Any]]()
 
     // Loop through each current player
     for((player, similarPlayers) <- grouped_allSimilarPlayers) {
@@ -311,11 +322,26 @@ object ArtificialClairvoyance {
         LabeledPoint(parts(2).toString.toDouble, parts(3).asInstanceOf[Vector])
       }
 
+
+      val hrLabeledPoints = similarPlayers_RDD.map { parts =>
+        LabeledPoint(parts(2).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      }.cache()
+
+      val hitLabeledPoints = similarPlayers_RDD.map { parts =>
+        LabeledPoint(parts(3).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      }.cache()
+
+
       // Create regression object
       val regression = new LinearRegressionWithSGD().setIntercept(true)
       regression.optimizer.setStepSize(0.001)
       regression.optimizer.setNumIterations(3000)
 
+
+      // Create regression object
+      val hitRegression = new LinearRegressionWithSGD().setIntercept(true)
+      hitRegression.optimizer.setStepSize(0.001)
+      hitRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val model = regression.run(labeledPoints)
 
@@ -324,10 +350,13 @@ object ArtificialClairvoyance {
       val age = playerSample.getString(1).toDouble
       val array = Array(age, math.pow(age, 2)/100, math.pow(age, 3)/1000, math.pow(age, 4)/10000)
 
-      predictions :+ Array(player, model.predict(Vectors.dense(array)))
+
+      val prediction = Array(player, age, hrModel.predict(Vectors.dense(array)), hitModel.predict(Vectors.dense(array)))
+
+      predictions += prediction
     }
 
-    predictions
+    predictions.toList
   }
 
   def nbaRegression(sc:SparkContext, matchedCurrentPlayers:DataFrame, ClusteredHistoricalPlayers:DataFrame): List[Array[Any]] ={
@@ -342,7 +371,7 @@ object ArtificialClairvoyance {
       player => player(0)
     }.collect()
 
-    val predictions = List()
+    val predictions = ListBuffer[Array[Any]]()
 
     // Loop through each current player
     for((player, similarPlayers) <- grouped_allSimilarPlayers) {
@@ -365,10 +394,25 @@ object ArtificialClairvoyance {
       val age = playerSample.getString(1).toDouble
       val array = Array(age, math.pow(age, 2)/100, math.pow(age, 3)/1000, math.pow(age, 4)/10000)
 
-      predictions :+ Array(player, model.predict(Vectors.dense(array)))
+      val prediction = Array(
+        player,
+        age,
+        ptsModel.predict(Vectors.dense(array)),
+        astModel.predict(Vectors.dense(array)),
+        rebModel.predict(Vectors.dense(array)),
+        stlModel.predict(Vectors.dense(array)),
+        blkModel.predict(Vectors.dense(array)),
+        tovModel.predict(Vectors.dense(array)),
+        threeMadeModel.predict(Vectors.dense(array)),
+        fgPerModel.predict(Vectors.dense(array)),
+        threePerModel.predict(Vectors.dense(array)),
+        ftModel.predict(Vectors.dense(array))
+      )
+
+      predictions += prediction
     }
 
-    predictions
+    predictions.toList
   }
 
   /**
