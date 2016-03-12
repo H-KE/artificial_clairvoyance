@@ -1,16 +1,20 @@
 import glob, os
 
-path = "../../../../app/resources/output/"
+
+
+#run in shell script after Artifical Clairvoyance runs 
+#Change path if want to run standalone
+path = "app/resources/output/"
 
 folder_list = ["mlb_players_current2",
-				"mlb_players_historical2",
-				"nba_players_current2",
-				"nba_players_historical2"]
+			   "mlb_players_historical2",
+			   "nba_players_current2",
+			   "nba_players_historical2"]
 
 output_files  = ["mlb_players_current.csv", 
-"mlb_players_historical.csv", 
-"nba_players_current.csv", 
-"nba_players_historical.csv"]
+				 "mlb_players_historical.csv", 
+				 "nba_players_current.csv", 
+				 "nba_players_historical.csv"]
 
 
 for folder, output_file in zip(folder_list, output_files):
