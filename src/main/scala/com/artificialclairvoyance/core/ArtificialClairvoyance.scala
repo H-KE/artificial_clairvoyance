@@ -92,22 +92,22 @@ object ArtificialClairvoyance {
     val nbaPrediction = nbaRegression(sc, matchedCurrentNbaPlayers, clusteredNbaPlayers)
     printToFile(new File("app/resources/output/nba_predictions.csv")) {
       p => {
-        p.println("PlayerId,Age,PTS,AST,REB,STL,BLK,TOV,3PM,FG%,3P%,FT%")
+        p.println("PlayerId,Age,PTS,AST,REB")//,STL,BLK,TOV,3PM,FG%,3P%,FT%")
         nbaPrediction.foreach(line =>
-          p.println("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s"
+          p.println("%s,%s,%s,%s,%s"//,%s,%s,%s,%s,%s,%s,%s"
             .format(
               line(0).toString,
               line(1).toString,
               line(2).toString,
               line(3).toString,
-              line(4).toString,
-              line(5).toString,
-              line(6).toString,
-              line(7).toString,
-              line(8).toString,
-              line(9).toString,
-              line(10).toString,
-              line(11).toString
+              line(4).toString//,
+//              line(5).toString,
+//              line(6).toString,
+//              line(7).toString,
+//              line(8).toString,
+//              line(9).toString,
+//              line(10).toString,
+//              line(11).toString
             )
           )
         )
