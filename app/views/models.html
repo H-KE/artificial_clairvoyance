@@ -1,7 +1,58 @@
-<table ng-table="model.tableParams" show-filter="true" class="table table-bordered table-striped">
-	<tr ng-repeat="row in $data track by row.name">
-		<td title="'Player'" filter="{name: 'text'}" sortable="'name'">{{row.name}}</td>
-		<td title="'Intercept'" sortable="'intercept'">{{row.intercept}}</td>
-		<td title="'Weight'" sortable="'weight'">{{row.weight}}</td>
-	</tr>
-</table>
+<div class="btn-group" data-toggle="buttons">
+    <label class="btn btn-primary active" id="mlbTableToggle" ng-click="toggleMLB()">
+        <input type="radio">MLB</label>
+    <label class="btn btn-primary" id="nbaTableToggle" ng-click="toggleNBA()">
+        <input type="radio">NBA</label>
+
+    <div class="table-container" ng-switch on="chartToggle.type">
+
+        <div class="table" id="mlbTable" class='with-3d-shadow with-transitions' ng-switch-when="MLB">
+            <table ng-table="model.tableParams" show-filter="true" class="table table-condensed table-bordered table-hover">
+				<tr class="ng-table-group" ng-repeat-start="group in $groups">
+			      <td colspan="3">
+			        <a href="" ng-click="group.$hideRows = !group.$hideRows">
+			          <span class="glyphicon" ng-class="{ 'glyphicon-chevron-right': group.$hideRows, 'glyphicon-chevron-down': !group.$hideRows }"></span>
+			          <strong>{{ group.value }}</strong>
+			        </a>
+			      </td>
+			    </tr>
+			    <tr ng-hide="group.$hideRows" ng-repeat="row in group.data" ng-repeat-end>
+				<!-- <tr ng-repeat="row in $data track by row.name"> -->
+					<td title="'Player'" filter="{playerId: 'text'}" sortable="'playerId'" groupable="'playerId'">{{row.playerId}}</td>
+					<td title="'Player'" filter="{playerId: 'text'}">{{row.type}}</td>
+					<td title="'Age'" sortable="'age'">{{row.age}}</td>
+					<td title="'Hits'" sortable="'hits'" ng-click="showChart(row, 'H', row.hits)">{{row.hits | number:2}}</td>
+					<td title="'Home Runs'" sortable="'homeruns'" ng-click="showChart(row, 'HR', row.homeruns)">{{row.homeruns | number:2}}</td>
+				</tr>
+			</table>
+        </div>
+        <div class="table" id="nbaTable" class='with-3d-shadow with-transitions' ng-switch-when="NBA">
+        	<table ng-table="model.tableParams" show-filter="true" class="table table-condensed table-bordered table-hover">
+				<tr class="ng-table-group" ng-repeat-start="group in $groups">
+			      <td colspan="12">
+			        <a href="" ng-click="group.$hideRows = !group.$hideRows">
+			          <span class="glyphicon" ng-class="{ 'glyphicon-chevron-right': group.$hideRows, 'glyphicon-chevron-down': !group.$hideRows }"></span>
+			          <strong>{{ group.value }}</strong>
+			        </a>
+			      </td>
+			    </tr>
+			    <tr ng-hide="group.$hideRows" ng-repeat="row in group.data" ng-repeat-end>
+				<!-- <tr ng-repeat="row in $data track by row.name"> -->
+					<td title="'Player'" filter="{name: 'text'}" sortable="'name'" groupable="'name'">{{row.name}}</td>
+					<td title="'Player'" filter="{name: 'text'}">{{row.type}}</td>
+					<td title="'Age'" sortable="'age'">{{row.age}}</td>
+					<td title="'Points'" sortable="'pts'" ng-click="showChart(row, 'PTS', row.pts)">{{row.pts | number:2}}</td>
+					<td title="'Field Goals'" sortable="'fg'" ng-click="showChart(row, 'FG%', row.fg)">{{row.fg | number:2}}</td>
+					<td title="'3-Point Field Goals'" sortable="'tpm'" ng-click="showChart(row, '3PM', row.tpm)">{{row.tpm | number:2}}</td>
+					<td title="'Free Throws'" sortable="'ft'" ng-click="showChart(row, 'FT%', row.ft)">{{row.ft | number:2}}</td>
+					<td title="'Rebounds'" sortable="'reb'" ng-click="showChart(row, 'REB', row.reb)">{{row.reb | number:2}}</td>
+					<td title="'Assists'" sortable="'ast'" ng-click="showChart(row, 'AST', row.ast)">{{row.ast | number:2}}</td>
+					<td title="'Steals'" sortable="'stl'" ng-click="showChart(row, 'STL', row.stl)">{{row.stl | number:2}}</td>
+					<td title="'Blocks'" sortable="'blk'" ng-click="showChart(row, 'BLK', row.blk)">{{row.blk | number:2}}</td>
+					<td title="'Turnovers'" sortable="'tov'" ng-click="showChart(row, 'TOV', row.tov)">{{row.tov | number:2}}</td>
+					<!-- <td title="'Compare'">IMPLEMENT</td> -->
+				</tr>
+			</table>
+        </div>
+    </div>
+</div>

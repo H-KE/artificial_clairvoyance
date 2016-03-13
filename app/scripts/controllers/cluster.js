@@ -178,10 +178,10 @@ angular.module('artificialClairvoyanceApp')
 	 * Watch for changes in the selectors and render the chart accordingly 
      */
 
-    $('#mlbToggle').on('click', function () {
+    $('#mlbChartToggle').on('click', function () {
     	$scope.chartToggle.type = "MLB";
   	})
-    $('#nbaToggle').on('click', function () {
+    $('#nbaChartToggle').on('click', function () {
     	$scope.chartToggle.type = "NBA";
   	})
     $('#legendToggle').on('click', function () {
