@@ -4,7 +4,7 @@ import csv
 
 season = 2016
 column = "PTS"
-file = "SampleNbaOutput.csv"
+file = "nba_predictions.csv"
 
 # We will compare results with data pulled directly from online
 br = mechanize.Browser()
@@ -55,7 +55,7 @@ with open(file, 'r') as dataset:
 					print "{} {}: Actual: {} Expected: {}, Error: {}".format(player[header_index_lookup['Player']].text, player_id, actual_per_game, predicted_per_game, error)
 			except KeyError:
 				# For players that are not in the league anymore
-				print "{} does not exist".format(row_dataset[dataset_header_index_lookup['Player']])
+				print "{} does not exist".format(row_dataset[dataset_header_index_lookup['PlayerId']])
 		row_num = row_num+1
 
 print "{}/{} Error Rate".format(errnum, row_num)
