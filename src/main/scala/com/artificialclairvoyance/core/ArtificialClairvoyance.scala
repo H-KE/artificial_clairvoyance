@@ -78,7 +78,7 @@ object ArtificialClairvoyance {
      */
     val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 40, 40, 5000, nbaCentersOutput)
     clusteredNbaPlayers
-      .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB", "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
+      .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/nba_players_historical2")
@@ -184,37 +184,37 @@ object ArtificialClairvoyance {
       .withColumn("REBtmp", toDouble(rawData("REB"))/rawData("Games"))
       .drop("REB")
       .withColumnRenamed("REBtmp", "REB")
-      // Steals per game
-      .withColumn("STLtmp", toDouble(rawData("STL"))/rawData("Games"))
-      .drop("STL")
-      .withColumnRenamed("STLtmp", "STL")
-      // Blocks per game
-      .withColumn("BLKtmp", toDouble(rawData("BLK"))/rawData("Games"))
-      .drop("BLK")
-      .withColumnRenamed("BLKtmp", "BLK")
-      // Turnovers per game
-      .withColumn("TOVtmp", toDouble(rawData("TOV"))/rawData("Games"))
-      .drop("TOV")
-      .withColumnRenamed("TOVtmp", "TOV")
-      // 3PM per game
-      .withColumn("3PMtmp", toDouble(rawData("3PM"))/rawData("Games"))
-      .drop("3PM")
-      .withColumnRenamed("3PMtmp", "3PM")
-      // FG%
-      .withColumn("FG%tmp", toDouble(rawData("FG%")))
-      .drop("FG%")
-      .withColumnRenamed("FG%tmp", "FG%")
-      // 3P%
-      .withColumn("3P%tmp", toDouble(rawData("3P%")))
-      .drop("3P%")
-      .withColumnRenamed("3P%tmp", "3P%")
-      // FT%
-      .withColumn("FT%tmp", toDouble(rawData("FT%")))
-      .drop("FT%")
-      .withColumnRenamed("FT%tmp", "FT%")
+      // // Steals per game
+      // .withColumn("STLtmp", toDouble(rawData("STL"))/rawData("Games"))
+      // .drop("STL")
+      // .withColumnRenamed("STLtmp", "STL")
+      // // Blocks per game
+      // .withColumn("BLKtmp", toDouble(rawData("BLK"))/rawData("Games"))
+      // .drop("BLK")
+      // .withColumnRenamed("BLKtmp", "BLK")
+      // // Turnovers per game
+      // .withColumn("TOVtmp", toDouble(rawData("TOV"))/rawData("Games"))
+      // .drop("TOV")
+      // .withColumnRenamed("TOVtmp", "TOV")
+      // // 3PM per game
+      // .withColumn("3PMtmp", toDouble(rawData("3PM"))/rawData("Games"))
+      // .drop("3PM")
+      // .withColumnRenamed("3PMtmp", "3PM")
+      // // FG%
+      // .withColumn("FG%tmp", toDouble(rawData("FG%")))
+      // .drop("FG%")
+      // .withColumnRenamed("FG%tmp", "FG%")
+      // // 3P%
+      // .withColumn("3P%tmp", toDouble(rawData("3P%")))
+      // .drop("3P%")
+      // .withColumnRenamed("3P%tmp", "3P%")
+      // // FT%
+      // .withColumn("FT%tmp", toDouble(rawData("FT%")))
+      // .drop("FT%")
+      // .withColumnRenamed("FT%tmp", "FT%")
 
     // Cluster all players
-    createClusterModelAndClusterPlayers(historicalPlayers, numClusters, iterations, Array("PTS", "AST", "REB", "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%"), outputFile)
+    createClusterModelAndClusterPlayers(historicalPlayers, numClusters, iterations, Array("PTS", "AST", "REB"), outputFile)//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%"), outputFile)
   }
 
   def preprocessData (sc:SparkContext, rawFile:String, seasonFrom:Int, minNumGames:Int): DataFrame ={
@@ -373,7 +373,7 @@ object ArtificialClairvoyance {
 
     // Convert back to RDD for ease of use
     val allSimilarPlayers_RDD = similarPlayerHistoryWithAgeVector
-      .select("CurrentPlayerId", "CurrentPlayerAge", "PTS", "AST", "REB", "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%", "AgeVector")
+      .select("CurrentPlayerId", "CurrentPlayerAge", "PTS", "AST", "REB", "AgeVector")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%", "AgeVector")
       .orderBy("CurrentPlayerId")
       .rdd
     // Group historical data by player
@@ -401,33 +401,33 @@ object ArtificialClairvoyance {
         LabeledPoint(parts(4).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
       }.cache()
 
-      val stlLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(5).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val stlLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(5).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val blkLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(6).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val blkLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(6).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val tovLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(7).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val tovLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(7).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val threeMadeLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(8).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val threeMadeLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(8).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val fgLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(9).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val fgLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(9).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val threePerLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(10).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val threePerLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(10).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
-      val ftLabeledPoints = similarPlayers_RDD.map { parts =>
-        LabeledPoint(parts(11).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
-      }.cache()
+      // val ftLabeledPoints = similarPlayers_RDD.map { parts =>
+      //   LabeledPoint(parts(11).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
+      // }.cache()
 
       // Create regression object
       val ptsRegression = new LinearRegressionWithSGD().setIntercept(true)
@@ -450,54 +450,54 @@ object ArtificialClairvoyance {
       // Run the regression
       val rebModel = rebRegression.run(rebLabeledPoints)
 
-      // Create regression object
-      val stlRegression = new LinearRegressionWithSGD().setIntercept(true)
-      stlRegression.optimizer.setStepSize(0.001)
-      stlRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val stlModel = stlRegression.run(stlLabeledPoints)
+      // // Create regression object
+      // val stlRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // stlRegression.optimizer.setStepSize(0.001)
+      // stlRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val stlModel = stlRegression.run(stlLabeledPoints)
 
-      // Create regression object
-      val blkRegression = new LinearRegressionWithSGD().setIntercept(true)
-      blkRegression.optimizer.setStepSize(0.001)
-      blkRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val blkModel = blkRegression.run(blkLabeledPoints)
+      // // Create regression object
+      // val blkRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // blkRegression.optimizer.setStepSize(0.001)
+      // blkRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val blkModel = blkRegression.run(blkLabeledPoints)
 
-      // Create regression object
-      val tovRegression = new LinearRegressionWithSGD().setIntercept(true)
-      tovRegression.optimizer.setStepSize(0.001)
-      tovRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val tovModel = tovRegression.run(tovLabeledPoints)
+      // // Create regression object
+      // val tovRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // tovRegression.optimizer.setStepSize(0.001)
+      // tovRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val tovModel = tovRegression.run(tovLabeledPoints)
 
-      // Create regression object
-      val threeMadeRegression = new LinearRegressionWithSGD().setIntercept(true)
-      threeMadeRegression.optimizer.setStepSize(0.001)
-      threeMadeRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val threeMadeModel = threeMadeRegression.run(threeMadeLabeledPoints)
+      // // Create regression object
+      // val threeMadeRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // threeMadeRegression.optimizer.setStepSize(0.001)
+      // threeMadeRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val threeMadeModel = threeMadeRegression.run(threeMadeLabeledPoints)
 
-      // Create regression object
-      val fgRegression = new LinearRegressionWithSGD().setIntercept(true)
-      fgRegression.optimizer.setStepSize(0.001)
-      fgRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val fgPerModel = fgRegression.run(fgLabeledPoints)
+      // // Create regression object
+      // val fgRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // fgRegression.optimizer.setStepSize(0.001)
+      // fgRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val fgPerModel = fgRegression.run(fgLabeledPoints)
 
-      // Create regression object
-      val threePerRegression = new LinearRegressionWithSGD().setIntercept(true)
-      threePerRegression.optimizer.setStepSize(0.001)
-      threePerRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val threePerModel = threePerRegression.run(threePerLabeledPoints)
+      // // Create regression object
+      // val threePerRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // threePerRegression.optimizer.setStepSize(0.001)
+      // threePerRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val threePerModel = threePerRegression.run(threePerLabeledPoints)
 
-      // Create regression object
-      val ftRegression = new LinearRegressionWithSGD().setIntercept(true)
-      ftRegression.optimizer.setStepSize(0.001)
-      ftRegression.optimizer.setNumIterations(3000)
-      // Run the regression
-      val ftModel = ftRegression.run(ftLabeledPoints)
+      // // Create regression object
+      // val ftRegression = new LinearRegressionWithSGD().setIntercept(true)
+      // ftRegression.optimizer.setStepSize(0.001)
+      // ftRegression.optimizer.setNumIterations(3000)
+      // // Run the regression
+      // val ftModel = ftRegression.run(ftLabeledPoints)
 
 
       // Save Prediction & Weights
@@ -509,14 +509,14 @@ object ArtificialClairvoyance {
         age,
         ptsModel.predict(Vectors.dense(array)),
         astModel.predict(Vectors.dense(array)),
-        rebModel.predict(Vectors.dense(array)),
-        stlModel.predict(Vectors.dense(array)),
-        blkModel.predict(Vectors.dense(array)),
-        tovModel.predict(Vectors.dense(array)),
-        threeMadeModel.predict(Vectors.dense(array)),
-        fgPerModel.predict(Vectors.dense(array)),
-        threePerModel.predict(Vectors.dense(array)),
-        ftModel.predict(Vectors.dense(array))
+        rebModel.predict(Vectors.dense(array))//,
+        // stlModel.predict(Vectors.dense(array)),
+        // blkModel.predict(Vectors.dense(array)),
+        // tovModel.predict(Vectors.dense(array)),
+        // threeMadeModel.predict(Vectors.dense(array)),
+        // fgPerModel.predict(Vectors.dense(array)),
+        // threePerModel.predict(Vectors.dense(array)),
+        // ftModel.predict(Vectors.dense(array))
       )
 
       predictions += prediction
