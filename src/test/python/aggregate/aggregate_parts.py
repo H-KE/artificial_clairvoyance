@@ -6,10 +6,10 @@ import glob, os
 #Change path if want to run standalone
 path = "app/resources/output/"
 
-folder_list = ["mlb_players_current2",
-			   "mlb_players_historical2",
-			   "nba_players_current2",
-			   "nba_players_historical2",
+folder_list = ["mlb_players_current",
+			   "mlb_players_historical",
+			   "nba_players_current",
+			   "nba_players_historical",
 			   "mlb_players_predictions",
 			   "nba_players_predictions"]
 
