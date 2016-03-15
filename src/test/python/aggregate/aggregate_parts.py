@@ -9,12 +9,16 @@ path = "app/resources/output/"
 folder_list = ["mlb_players_current2",
 			   "mlb_players_historical2",
 			   "nba_players_current2",
-			   "nba_players_historical2"]
+			   "nba_players_historical2",
+			   "mlb_players_predictions",
+			   "nba_players_predictions"]
 
 output_files  = ["mlb_players_match.csv",
 				 "mlb_players_historical.csv",
 				 "nba_players_match.csv",
-				 "nba_players_historical.csv"]
+				 "nba_players_historical.csv",
+				 "mlb_predictions.csv",
+				 "nba_predictions.csv"]
 
 
 for folder, output_file in zip(folder_list, output_files):

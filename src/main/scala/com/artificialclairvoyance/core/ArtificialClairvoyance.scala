@@ -9,7 +9,7 @@ import org.apache.spark.mllib.linalg.{Vector, Vectors}
 import java.io._
 
 import org.apache.spark.mllib.regression.{LabeledPoint, LinearRegressionWithSGD}
-import org.apache.spark.sql.{DataFrame, functions, SQLContext}
+import org.apache.spark.sql.{GroupedData, DataFrame, functions, SQLContext}
 import org.apache.spark.sql.functions._
 
 import scala.collection.mutable.ListBuffer
@@ -49,29 +49,37 @@ object ArtificialClairvoyance {
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/mlb_players_historical2")
-
     val matchedCurrentMlbPlayers = matchCurrentPlayers(clusteredMlbPlayers, 2014)
     matchedCurrentMlbPlayers
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/mlb_players_current2")
+    val mlbPredictionGrouped = nonRegressionPrediction(matchedCurrentMlbPlayers, clusteredMlbPlayers)
+    mlbPredictionGrouped
+      .agg(avg("HR"), avg("H"))
+      .withColumnRenamed("CurrentPlayerId", "PlayerId")
+      .withColumnRenamed("avg(H)", "H")
+      .withColumnRenamed("avg(HR)", "HR")
+      .write.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .save("app/resources/output/mlb_players_predictions")
 
-    val mlbPrediction = mlbRegression(sc, matchedCurrentMlbPlayers, clusteredMlbPlayers)
-    printToFile(new File("app/resources/output/mlb_predictions.csv")) {
-      p => {
-        p.println("PlayerId,Age,HR,H")
-        mlbPrediction.foreach(line =>
-          p.println("%s,%s,%s,%s"
-            .format(
-              line(0).toString,
-              line(1).toString,
-              line(2).toString,
-              line(3).toString
-            )
-          )
-        )
-      }
-    }
+//    val mlbPrediction = mlbRegression(sc, matchedCurrentMlbPlayers, clusteredMlbPlayers)
+//    printToFile(new File("app/resources/output/mlb_predictions.csv")) {
+//      p => {
+//        p.println("PlayerId,Age,HR,H")
+//        mlbPrediction.foreach(line =>
+//          p.println("%s,%s,%s,%s"
+//            .format(
+//              line(0).toString,
+//              line(1).toString,
+//              line(2).toString,
+//              line(3).toString
+//            )
+//          )
+//        )
+//      }
+//    }
 
     /**
      * NBA
@@ -88,31 +96,42 @@ object ArtificialClairvoyance {
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/nba_players_current2")
+    val nbaPredictionGrouped = nonRegressionPrediction(matchedCurrentNbaPlayers, clusteredNbaPlayers)
+    nbaPredictionGrouped
+      .agg(avg("PTS"), avg("AST"), avg("REB"))
+      .withColumnRenamed("CurrentPlayerId", "PlayerId")
+      .withColumnRenamed("avg(PTS)", "PTS")
+      .withColumnRenamed("avg(AST)", "AST")
+      .withColumnRenamed("avg(REB)", "REB")
+      .write.format("com.databricks.spark.csv")
+      .option("header", "true")
+      .save("app/resources/output/nba_players_predictions")
 
-    val nbaPrediction = nbaRegression(sc, matchedCurrentNbaPlayers, clusteredNbaPlayers)
-    printToFile(new File("app/resources/output/nba_predictions.csv")) {
-      p => {
-        p.println("PlayerId,Age,PTS,AST,REB")//,STL,BLK,TOV,3PM,FG%,3P%,FT%")
-        nbaPrediction.foreach(line =>
-          p.println("%s,%s,%s,%s,%s"//,%s,%s,%s,%s,%s,%s,%s"
-            .format(
-              line(0).toString,
-              line(1).toString,
-              line(2).toString,
-              line(3).toString,
-              line(4).toString//,
-//              line(5).toString,
-//              line(6).toString,
-//              line(7).toString,
-//              line(8).toString,
-//              line(9).toString,
-//              line(10).toString,
-//              line(11).toString
-            )
-          )
-        )
-      }
-    }
+
+//    val nbaPrediction = nbaRegression(sc, matchedCurrentNbaPlayers, clusteredNbaPlayers)
+//    printToFile(new File("app/resources/output/nba_predictions.csv")) {
+//      p => {
+//        p.println("PlayerId,Age,PTS,AST,REB")//,STL,BLK,TOV,3PM,FG%,3P%,FT%")
+//        nbaPrediction.foreach(line =>
+//          p.println("%s,%s,%s,%s,%s"//,%s,%s,%s,%s,%s,%s,%s"
+//            .format(
+//              line(0).toString,
+//              line(1).toString,
+//              line(2).toString,
+//              line(3).toString,
+//              line(4).toString//,
+////              line(5).toString,
+////              line(6).toString,
+////              line(7).toString,
+////              line(8).toString,
+////              line(9).toString,
+////              line(10).toString,
+////              line(11).toString
+//            )
+//          )
+//        )
+//      }
+//    }
 
     // Terminate the spark context
     sc.stop()
@@ -328,6 +347,26 @@ object ArtificialClairvoyance {
     *  REGRESSION ALGORITHM
     *
     ********************************************************************************************************************/
+  def nonRegressionPrediction(matchedCurrentPlayers:DataFrame, ClusteredHistoricalPlayers:DataFrame): GroupedData ={
+    // Join the historical players with the current players
+    val similarPlayerHistory = matchedCurrentPlayers
+      .select("CurrentPlayerId", "CurrentPlayerAge", "SimilarPlayerId")
+      .join(
+        ClusteredHistoricalPlayers,
+        matchedCurrentPlayers("SimilarPlayerId")===ClusteredHistoricalPlayers("PlayerId"),
+        "left")
+      .na.drop()
+      .drop("PlayerId")
+
+    // Filter to those with the current player's age + 1
+    val simlarPlayerNextYear = similarPlayerHistory
+      .filter(similarPlayerHistory("Age") === similarPlayerHistory("CurrentPlayerAge")+1)
+
+    simlarPlayerNextYear
+      .groupBy("CurrentPlayerId")
+  }
+
+
   def mlbRegression(sc:SparkContext, matchedCurrentPlayers:DataFrame, ClusteredHistoricalPlayers:DataFrame): List[Array[Any]] ={
     val similarPlayerHistoryWithAgeVector = regressionPrep(sc, matchedCurrentPlayers, ClusteredHistoricalPlayers)
 
