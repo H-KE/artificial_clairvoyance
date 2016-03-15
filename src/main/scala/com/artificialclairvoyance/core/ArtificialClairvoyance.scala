@@ -48,12 +48,12 @@ object ArtificialClairvoyance {
       .select("Cluster", "PlayerId", "Age", "Season", "Games", "HR", "H")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/mlb_players_historical2")
+      .save("app/resources/output/mlb_players_historical")
     val matchedCurrentMlbPlayers = matchCurrentPlayers(clusteredMlbPlayers, 2014)
     matchedCurrentMlbPlayers
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/mlb_players_current2")
+      .save("app/resources/output/mlb_players_current")
     val mlbPredictionGrouped = nonRegressionPrediction(matchedCurrentMlbPlayers, clusteredMlbPlayers)
     mlbPredictionGrouped
       .agg(avg("HR"), avg("H"))
@@ -89,13 +89,13 @@ object ArtificialClairvoyance {
       .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/nba_players_historical2")
+      .save("app/resources/output/nba_players_historical")
 
     val matchedCurrentNbaPlayers = matchCurrentPlayers(clusteredNbaPlayers, 2015)
     matchedCurrentNbaPlayers
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
-      .save("app/resources/output/nba_players_current2")
+      .save("app/resources/output/nba_players_current")
     val nbaPredictionGrouped = nonRegressionPrediction(matchedCurrentNbaPlayers, clusteredNbaPlayers)
     nbaPredictionGrouped
       .agg(avg("PTS"), avg("AST"), avg("REB"))
