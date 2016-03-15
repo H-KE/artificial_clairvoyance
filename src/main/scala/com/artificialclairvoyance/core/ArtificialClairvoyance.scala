@@ -76,7 +76,7 @@ object ArtificialClairvoyance {
     /**
      * NBA
      */
-    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 40, 40, 5000, nbaCentersOutput)
+    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 65, 50, 10000, nbaCentersOutput)
     clusteredNbaPlayers
       .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
@@ -168,7 +168,14 @@ object ArtificialClairvoyance {
    * @return
    */
   def nbaClustering (sc:SparkContext, rawFile:String, seasonFrom:Int, minNumGames:Int, numClusters:Int, iterations:Int, outputFile:String): DataFrame ={
-    val rawData = preprocessData(sc, rawFile, seasonFrom, minNumGames)
+    val rawRawData = preprocessData(sc, rawFile, seasonFrom, minNumGames)
+    // filter out people who don't play enough (noise reduction)
+    val mpDouble = rawRawData
+      .withColumn("MPtmp", toDouble(rawRawData("MP")))
+      .drop("MP")
+      .withColumnRenamed("MPtmp", "MP")
+    val rawData = mpDouble
+      .filter(mpDouble("MP") > mpDouble("Games")*15)
 
     // Further preprocess of data
     val historicalPlayers = rawData
@@ -293,9 +300,18 @@ object ArtificialClairvoyance {
     val similarPlayerHistory = currentPlayers
       .join(
         historicalPlayers,
-        currentPlayers("CurrentPlayerCluster")===historicalPlayers("Cluster") &&
-          currentPlayers("CurrentPlayerAge") <= historicalPlayers("Age") + 1 &&
-          currentPlayers("CurrentPlayerAge") >= historicalPlayers("Age") - 1,
+        currentPlayers("CurrentPlayerCluster")===historicalPlayers("Cluster") && (
+          // Current Player matches historical player's age
+          currentPlayers("CurrentPlayerAge") === historicalPlayers("Age")
+            // Variable age window for younger players
+            || (currentPlayers("CurrentPlayerAge") < 24
+            && currentPlayers("CurrentPlayerAge") <= historicalPlayers("Age") + 1
+            && currentPlayers("CurrentPlayerAge") >= historicalPlayers("Age") - 1)
+            // Variable age window for older players
+            || (currentPlayers("CurrentPlayerAge") > 32
+            && currentPlayers("CurrentPlayerAge") <= historicalPlayers("Age") + 1
+            && currentPlayers("CurrentPlayerAge") >= historicalPlayers("Age") - 1)
+          ),
         "left")
       .na.drop()
 
@@ -342,14 +358,14 @@ object ArtificialClairvoyance {
 
       // Create regression object
       val hrRegression = new LinearRegressionWithSGD().setIntercept(true)
-      hrRegression.optimizer.setStepSize(0.001)
+      hrRegression.optimizer.setStepSize(0.005)
       hrRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val hrModel = hrRegression.run(hrLabeledPoints)
 
       // Create regression object
       val hitRegression = new LinearRegressionWithSGD().setIntercept(true)
-      hitRegression.optimizer.setStepSize(0.001)
+      hitRegression.optimizer.setStepSize(0.005)
       hitRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val hitModel = hitRegression.run(hitLabeledPoints)
@@ -358,7 +374,7 @@ object ArtificialClairvoyance {
       // Save Prediction & Weights
       val playerSample = similarPlayers.toList.head
       val age = playerSample.getInt(1).toDouble + 1
-      val array = Array(age, math.pow(age, 2)/100, math.pow(age, 3)/1000, math.pow(age, 4)/10000)
+      val array = Array(age, math.pow(age, 2)/100)//, math.pow(age, 3)/1000)//, math.pow(age, 4)/10000)
 
       val prediction = Array(player, age, hrModel.predict(Vectors.dense(array)), hitModel.predict(Vectors.dense(array)))
 
@@ -431,21 +447,21 @@ object ArtificialClairvoyance {
 
       // Create regression object
       val ptsRegression = new LinearRegressionWithSGD().setIntercept(true)
-      ptsRegression.optimizer.setStepSize(0.001)
+      ptsRegression.optimizer.setStepSize(0.005)
       ptsRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val ptsModel = ptsRegression.run(ptsLabeledPoints)
 
       // Create regression object
       val astRegression = new LinearRegressionWithSGD().setIntercept(true)
-      astRegression.optimizer.setStepSize(0.001)
+      astRegression.optimizer.setStepSize(0.005)
       astRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val astModel = astRegression.run(astLabeledPoints)
 
       // Create regression object
       val rebRegression = new LinearRegressionWithSGD().setIntercept(true)
-      rebRegression.optimizer.setStepSize(0.001)
+      rebRegression.optimizer.setStepSize(0.005)
       rebRegression.optimizer.setNumIterations(3000)
       // Run the regression
       val rebModel = rebRegression.run(rebLabeledPoints)
@@ -503,7 +519,7 @@ object ArtificialClairvoyance {
       // Save Prediction & Weights
       val playerSample = similarPlayers.toList.head
       val age = playerSample.getInt(1).toDouble + 1
-      val array = Array(age, math.pow(age, 2)/100, math.pow(age, 3)/1000, math.pow(age, 4)/10000)
+      val array = Array(age, math.pow(age, 2)/100)//, math.pow(age, 3)/1000)//, math.pow(age, 4)/10000)
       val prediction = Array(
         player,
         age,
@@ -548,7 +564,7 @@ object ArtificialClairvoyance {
     // Equation for 3rd degree poly would look like (x+ (x^2)/10^2 + (X^3)/10^3 )
     val squareNormed = udf((x:Double) => math.pow(x, 2)/100)
     val cubeNormed = udf((x:Double) => math.pow(x, 3)/1000)
-    val fourthNormed = udf((x:Double) => math.pow(x, 4)/10000)
+    //val fourthNormed = udf((x:Double) => math.pow(x, 4)/10000)
     // val fifthNormed = udf((x:Double) => math.pow(x, 5)/100000)
     val similarPlayerHistoryFixed = similarPlayerHistory
       .withColumn("AgeTmp", toDouble(similarPlayerHistory("Age")))
@@ -556,16 +572,16 @@ object ArtificialClairvoyance {
       .withColumnRenamed("AgeTmp", "Age")
     val similarPlayerHistoryPoly = similarPlayerHistoryFixed
       .withColumn("Age2", squareNormed(similarPlayerHistoryFixed("Age")))
-      .withColumn("Age3", cubeNormed(similarPlayerHistoryFixed("Age")))
-      .withColumn("Age4", fourthNormed(similarPlayerHistoryFixed("Age")))
+    //  .withColumn("Age3", cubeNormed(similarPlayerHistoryFixed("Age")))
+    //  .withColumn("Age4", fourthNormed(similarPlayerHistoryFixed("Age")))
     // .withColumn("Age5", fifthNormed(similarPlayerHistory("Age")))
 
     // Convert age column into vector.
     val assembler = new VectorAssembler()
-      .setInputCols(Array("Age", "Age2", "Age3", "Age4"))
+      .setInputCols(Array("Age", "Age2"))//, "Age3"))//, "Age4"))
       .setOutputCol("AgeVector")
     val similarPlayerHistoryWithAgeVector = assembler.transform(similarPlayerHistoryPoly)
-      .drop("Age").drop("Age2").drop("Age3").drop("Age4")
+      .drop("Age").drop("Age2")//.drop("Age3")//.drop("Age4")
 
     similarPlayerHistoryWithAgeVector
   }
