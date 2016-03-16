@@ -6,40 +6,32 @@ import matplotlib
 season = 2015
 column = "HR" #target variable
 file = "../../../../app/resources/output/mlb_predictions.csv"
+actualfile = "../../../../app/resources/output/mlb_players_current.csv"
 
-out = open('../../../../app/resources/output/mlb_players_current'+column+'.csv', 'w')
+actualdata = open(actualfile, 'r')
+actual = csv.reader(actualdata)
 
-# We will compare results with data pulled directly from online
-br = mechanize.Browser()
-soup = BeautifulSoup(br.open("http://www.baseball-reference.com/leagues/MLB/" + str(season) + "-standard-batting.shtml"),  "html.parser")
-table = soup.find('table', attrs={'id':'players_standard_batting'})
-
-# Create a dictionary for finding the index of the column of interest (Rk, Name, Age, Tm, Lg, G, etc.)
-header = table.find('thead')
-header_names = header.find('tr').find_all('th')
+row_num = 0
 header_index_lookup = {}
+first = next(actual)
 i = 0
+for col in first:
+    header_index_lookup[col] = i
+    i = i + 1
 
-h_names = []
-
-for header_name in header_names:
-    h_names.append(header_name.text.encode('utf-8'))
-    header_index_lookup[header_name.text] = i
-    i = i+1
-
-out.write('PlayerId'+','+','.join(str(x) for x in h_names[1:]) + '\n')
-# Create a dictionary for finding the index of the player of interest
-rows = table.find_all('tr', attrs={'class':'full_table'})
-player_index_lookup = {}
+player_stats_lookup = {}
 i = 0
-for row in rows:
-    player_index_lookup[row.find_all('td')[1].a.get('href').split('/')[-1].split('.')[0]] = i
-    i = i+1
-errnum = 0
+for row in actual:
+    if row != 0:
+        player_stats_lookup[row[0]] = row
+        i = i+1
+
+row_num = 0
 noexist = 0
+errnum = 0
+
 # Dealing with the actual dataset we want to verify
 with open(file, 'r') as dataset:
-
     reader = csv.reader(dataset)
     row_num = 0
     dataset_header_index_lookup = {}
@@ -52,15 +44,10 @@ with open(file, 'r') as dataset:
         else:
             try:
                 player_id = row_dataset[dataset_header_index_lookup['PlayerId']]
-                #age = row_dataset[dataset_header_index_lookup['Age']]
                 # Get all the player's data using the player_id as the lookup key
-                player = rows[player_index_lookup[player_id]].find_all('td')
-                stats = []
+                stats = player_stats_lookup[player_id]
 
-                for p in player:
-                    stats.append(p.text.encode('utf-8'))
-
-                actual_per_game = float(player[header_index_lookup[column]].text)
+                actual_per_game = float(stats[header_index_lookup[column]])
                 predicted_per_game = float(row_dataset[dataset_header_index_lookup[column]])
 
                 if actual_per_game > 0.0:
@@ -69,15 +56,12 @@ with open(file, 'r') as dataset:
                     error = 1
                 if error > 0.1:
                     errnum = errnum+1
-                    print "{} {}: Actual: {} Expected: {}, Error: {}".format(player[header_index_lookup['Name']].text.encode('utf-8'), player_id, actual_per_game, predicted_per_game, error)
-                out.write(player_id + ',' + ','.join(str(x) for x in stats[1:]) + '\n')
+                    print "{} {}: Actual: {} Expected: {}, Error: {}".format(stats[header_index_lookup['Name']], player_id, actual_per_game, predicted_per_game, error)
             except KeyError:
                 # For players that are not in the league anymore
                 print "{} does not exist".format(row_dataset[dataset_header_index_lookup['PlayerId']])
                 noexist = noexist + 1
         row_num = row_num+1
-
-out.close()
 
 print "{}/{} Error Rate".format(errnum, row_num-noexist-1)
 
