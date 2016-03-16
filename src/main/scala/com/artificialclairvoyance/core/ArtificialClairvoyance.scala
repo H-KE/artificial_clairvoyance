@@ -43,7 +43,7 @@ object ArtificialClairvoyance {
     /**
      * MLB
      */
-    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 100, 20, 5000, mlbCentersOutput)
+    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 300, 20, 5000, mlbCentersOutput)
     clusteredMlbPlayers
       .select("Cluster", "PlayerId", "Age", "Season", "Games", "HR", "H")
       .write.format("com.databricks.spark.csv")
@@ -277,7 +277,7 @@ object ArtificialClairvoyance {
     // Train the cluster model
     val trainingVectors = historicalPlayersWithClusterVectors
       .select("clusterVector").rdd
-      .map(vector => vector(0).asInstanceOf[Vector])
+      .map(vector => vector(0).asInstanceOf[Vector]).cache()
     val clusterModel = KMeans.train(trainingVectors, numClusters, iterations)
 
     //print centers to file for GUI
