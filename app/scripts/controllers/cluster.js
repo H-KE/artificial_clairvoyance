@@ -35,13 +35,14 @@ angular.module('artificialClairvoyanceApp')
                 });
 
             });
+            //console.log(parsedData);
             d3.csv(players_csvpath, function(playerData) {
                 playerData.forEach(function(d) {
-                    d.cluster = +d.cluster;
+                    d.Cluster = +d.Cluster;
                     d[x_axis] = +d[x_axis];
                     d[y_axis] = +d[y_axis];
-
-                    parsedData[d.cluster].values.push({
+                    console.log(d);
+                    parsedData[d.Cluster].values.push({
                         x: d[x_axis],
                         y: d[y_axis],
                         name: d.player,
@@ -98,9 +99,9 @@ angular.module('artificialClairvoyanceApp')
 		        renderChart(mlbChart, 
 		               d3.select('#chart_svg'), 
 		               "resources/output/mlb_centers.csv", 
-		               "resources/output/mlb_players2014.csv",
-		               "hits", 
-		               "homeruns");
+		               "resources/output/mlb_players_historical.csv",
+		               "H", 
+		               "RBI");
     		});
   		} else if ($scope.chartToggle.type === "NBA") {
   			nv.addGraph(function() {
@@ -144,7 +145,7 @@ angular.module('artificialClairvoyanceApp')
 		        renderChart(nbaChart, 
 		               d3.select('#chart_svg'), 
 		               "resources/output/nba_centers.csv", 
-		               "resources/output/nba_players2014.csv",
+		               "resources/output/nba_players_historical.csv",
 		               x_axis, 
 		               y_axis);
 
@@ -155,7 +156,7 @@ angular.module('artificialClairvoyanceApp')
 			        renderChart(nbaChart, 
 			            d3.select('#chart_svg'), 
 			                      "resources/output/nba_centers.csv", 
-			                      "resources/output/nba_players2014.csv",
+			                      "resources/output/nba_players_historical.csv",
 			                      $("#x_select").val(), 
 			                      $("#y_select").val()
 			            );
@@ -165,7 +166,7 @@ angular.module('artificialClairvoyanceApp')
 			        renderChart(nbaChart, 
 			            d3.select('#chart_svg'), 
 			                      "resources/output/nba_centers.csv", 
-			                      "resources/output/nba_players2014.csv",
+			                      "resources/output/nba_players_historical.csv",
 			                      $("#x_select").val(), 
 			                      $("#y_select").val()
 			            );
@@ -180,12 +181,12 @@ angular.module('artificialClairvoyanceApp')
 
     $('#mlbChartToggle').on('click', function () {
     	$scope.chartToggle.type = "MLB";
-  	})
+  	});
     $('#nbaChartToggle').on('click', function () {
     	$scope.chartToggle.type = "NBA";
-  	})
+  	});
     $('#legendToggle').on('click', function () {
     	$('#chart_svg').empty();
     	$scope.chartToggle.legend = !$scope.chartToggle.legend;
-    })
+    });
   });

@@ -142,9 +142,9 @@ angular.module('artificialClairvoyanceApp')
                   name: d["Name"],
                   type: "Predicted",
                   cluster: d["Cluster"],
-                  age: prediction["Age"],
+                  age: d["Age"],
                   hits: prediction["H"],
-                  homeruns: prediction["HR"],
+                  homeruns: prediction["RBI"],
                   playerId: d["PlayerId"]
                 })
                 dataset.push({
@@ -153,7 +153,7 @@ angular.module('artificialClairvoyanceApp')
                   cluster: d["Cluster"],
                   age: d["Age"],
                   hits: d["H"],
-                  homeruns: d["HR"],
+                  homeruns: d["RBI"],
                   playerId: d["PlayerId"]
                 })
               }

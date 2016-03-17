@@ -4,7 +4,7 @@ import csv
 import matplotlib
 
 season = 2015
-column = "HR" #target variable
+column = "RBI" #target variable
 file = "../../../../app/resources/output/mlb_predictions.csv"
 actualfile = "../../../../app/resources/output/mlb_players_current.csv"
 

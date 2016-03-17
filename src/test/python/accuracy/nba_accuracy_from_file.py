@@ -4,7 +4,7 @@ import csv
 
 season = 2016
 column = "PTS"
-file = "nba_predictions.csv"
+file = "../../../../app/resources/output/nba_predictions.csv"
 error_margin = 0.1
 
 # We will compare results with data pulled directly from online

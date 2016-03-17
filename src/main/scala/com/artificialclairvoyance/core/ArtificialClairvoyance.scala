@@ -43,7 +43,7 @@ object ArtificialClairvoyance {
     /**
      * MLB
      */
-    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 2014, 121, 20, 5000, mlbCentersOutput)
+    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 2014, 121, 15, 5000, mlbCentersOutput)
     clusteredMlbPlayers
       .select("Cluster", "PlayerId", "Age", "Season", "Games", "RBI", "H")
       .write.format("com.databricks.spark.csv")
@@ -84,7 +84,7 @@ object ArtificialClairvoyance {
     /**
      * NBA
      */
-    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 2015, 61, 30, 5000, nbaCentersOutput)
+    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 2015, 61, 40, 10000, nbaCentersOutput)
     clusteredNbaPlayers
       .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
@@ -387,7 +387,7 @@ object ArtificialClairvoyance {
       // SimilarPlayers is an iterable, convert to RDD
       val similarPlayers_RDD = sc.parallelize(similarPlayers.toList)
 
-      val hrLabeledPoints = similarPlayers_RDD.map { parts =>
+      val rbiLabeledPoints = similarPlayers_RDD.map { parts =>
         LabeledPoint(parts(2).toString.toDouble, parts(parts.length-1).asInstanceOf[Vector])
       }.cache()
 
@@ -396,11 +396,11 @@ object ArtificialClairvoyance {
       }.cache()
 
       // Create regression object
-      val hrRegression = new LinearRegressionWithSGD().setIntercept(true)
-      hrRegression.optimizer.setStepSize(0.005)
-      hrRegression.optimizer.setNumIterations(3000)
+      val rbiRegression = new LinearRegressionWithSGD().setIntercept(true)
+      rbiRegression.optimizer.setStepSize(0.005)
+      rbiRegression.optimizer.setNumIterations(3000)
       // Run the regression
-      val hrModel = hrRegression.run(hrLabeledPoints)
+      val rbiModel = rbiRegression.run(rbiLabeledPoints)
 
       // Create regression object
       val hitRegression = new LinearRegressionWithSGD().setIntercept(true)
@@ -415,7 +415,7 @@ object ArtificialClairvoyance {
       val age = playerSample.getInt(1).toDouble + 1
       val array = Array(age, math.pow(age, 2)/100)//, math.pow(age, 3)/1000)//, math.pow(age, 4)/10000)
 
-      val prediction = Array(player, age, hrModel.predict(Vectors.dense(array)), hitModel.predict(Vectors.dense(array)))
+      val prediction = Array(player, age, rbiModel.predict(Vectors.dense(array)), hitModel.predict(Vectors.dense(array)))
 
       predictions += prediction
     }
