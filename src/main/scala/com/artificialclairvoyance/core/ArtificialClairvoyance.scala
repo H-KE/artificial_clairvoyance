@@ -43,9 +43,9 @@ object ArtificialClairvoyance {
     /**
      * MLB
      */
-    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 300, 20, 5000, mlbCentersOutput)
+    val clusteredMlbPlayers = mlbClustering(sc, battingFile, 1980, 2014, 121, 20, 5000, mlbCentersOutput)
     clusteredMlbPlayers
-      .select("Cluster", "PlayerId", "Age", "Season", "Games", "HR", "H")
+      .select("Cluster", "PlayerId", "Age", "Season", "Games", "RBI", "H")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/mlb_players_historical")
@@ -56,10 +56,10 @@ object ArtificialClairvoyance {
       .save("app/resources/output/mlb_players_current")
     val mlbPredictionGrouped = nonRegressionPrediction(matchedCurrentMlbPlayers, clusteredMlbPlayers)
     mlbPredictionGrouped
-      .agg(avg("HR"), avg("H"))
+      .agg(avg("RBI"), avg("H"))
       .withColumnRenamed("CurrentPlayerId", "PlayerId")
       .withColumnRenamed("avg(H)", "H")
-      .withColumnRenamed("avg(HR)", "HR")
+      .withColumnRenamed("avg(RBI)", "RBI")
       .write.format("com.databricks.spark.csv")
       .option("header", "true")
       .save("app/resources/output/mlb_players_predictions")
@@ -67,7 +67,7 @@ object ArtificialClairvoyance {
 //    val mlbPrediction = mlbRegression(sc, matchedCurrentMlbPlayers, clusteredMlbPlayers)
 //    printToFile(new File("app/resources/output/mlb_predictions.csv")) {
 //      p => {
-//        p.println("PlayerId,Age,HR,H")
+//        p.println("PlayerId,Age,RBI,H")
 //        mlbPrediction.foreach(line =>
 //          p.println("%s,%s,%s,%s"
 //            .format(
@@ -84,7 +84,7 @@ object ArtificialClairvoyance {
     /**
      * NBA
      */
-    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 65, 50, 10000, nbaCentersOutput)
+    val clusteredNbaPlayers = nbaClustering(sc, nbaFile, 1980, 2015, 61, 30, 5000, nbaCentersOutput)
     clusteredNbaPlayers
       .select("Cluster", "PlayerId", "Name", "Age", "Season", "Games", "PTS", "AST", "REB")//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%")
       .write.format("com.databricks.spark.csv")
@@ -158,22 +158,22 @@ object ArtificialClairvoyance {
    * @param iterations
    * @return
    */
-  def mlbClustering (sc:SparkContext, rawFile:String, seasonFrom:Int, minNumGames:Int, numClusters:Int, iterations:Int, outputFile:String): DataFrame ={
-    val rawData = preprocessData(sc, rawFile, seasonFrom, minNumGames)
+  def mlbClustering (sc:SparkContext, rawFile:String, seasonFrom:Int, seasonTo:Int, minNumGames:Int, numClusters:Int, iterations:Int, outputFile:String): DataFrame ={
+    val rawData = preprocessData(sc, rawFile, seasonFrom, seasonTo, minNumGames)
 
     // Further preprocess of data
     val historicalPlayers = rawData
       // Homeruns
-      .withColumn("HRtmp", toDouble(rawData("HR")))
-      .drop("HR")
-      .withColumnRenamed("HRtmp", "HR")
+      .withColumn("RBItmp", toDouble(rawData("RBI")))
+      .drop("RBI")
+      .withColumnRenamed("RBItmp", "RBI")
       // Hits
       .withColumn("Htmp", toDouble(rawData("H")))
       .drop("H")
       .withColumnRenamed("Htmp", "H")
 
     // Cluster all players
-    createClusterModelAndClusterPlayers(historicalPlayers, numClusters, iterations, Array("HR", "H"), outputFile)
+    createClusterModelAndClusterPlayers(historicalPlayers, numClusters, iterations, Array("RBI", "H"), outputFile)
   }
 
   /**
@@ -186,8 +186,8 @@ object ArtificialClairvoyance {
    * @param iterations
    * @return
    */
-  def nbaClustering (sc:SparkContext, rawFile:String, seasonFrom:Int, minNumGames:Int, numClusters:Int, iterations:Int, outputFile:String): DataFrame ={
-    val rawRawData = preprocessData(sc, rawFile, seasonFrom, minNumGames)
+  def nbaClustering (sc:SparkContext, rawFile:String, seasonFrom:Int, seasonTo:Int, minNumGames:Int, numClusters:Int, iterations:Int, outputFile:String): DataFrame ={
+    val rawRawData = preprocessData(sc, rawFile, seasonFrom, seasonTo, minNumGames)
     // filter out people who don't play enough (noise reduction)
     val mpDouble = rawRawData
       .withColumn("MPtmp", toDouble(rawRawData("MP")))
@@ -243,7 +243,7 @@ object ArtificialClairvoyance {
     createClusterModelAndClusterPlayers(historicalPlayers, numClusters, iterations, Array("PTS", "AST", "REB"), outputFile)//, "STL", "BLK", "TOV", "3PM", "FG%", "3P%", "FT%"), outputFile)
   }
 
-  def preprocessData (sc:SparkContext, rawFile:String, seasonFrom:Int, minNumGames:Int): DataFrame ={
+  def preprocessData (sc:SparkContext, rawFile:String, seasonFrom:Int, seasonTo:Int, minNumGames:Int): DataFrame ={
     val sqlContext = new SQLContext(sc)
 
     // Read in the input file
@@ -254,7 +254,7 @@ object ArtificialClairvoyance {
       .withColumn("SeasonTmp", toInt(rawData("Season")))
       .drop("Season")
       .withColumnRenamed("SeasonTmp", "Season")
-      .filter("Season >= " + seasonFrom)
+      .filter("Season >= " + seasonFrom + " AND Season <= " + seasonTo)
       // Filter Games (Noise reduction)
       .withColumn("GamesTmp", toInt(rawData("Games")))
       .drop("Games")
@@ -372,7 +372,7 @@ object ArtificialClairvoyance {
 
     // Convert back to RDD for ease of use
     val allSimilarPlayers_RDD = similarPlayerHistoryWithAgeVector
-      .select("CurrentPlayerId", "CurrentPlayerAge", "HR", "H", "AgeVector")
+      .select("CurrentPlayerId", "CurrentPlayerAge", "RBI", "H", "AgeVector")
       .orderBy("CurrentPlayerId")
       .rdd
     // Group historical data by player
