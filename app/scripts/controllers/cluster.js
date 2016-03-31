@@ -41,11 +41,14 @@ angular.module('artificialClairvoyanceApp')
                     d.Cluster = +d.Cluster;
                     d[x_axis] = +d[x_axis];
                     d[y_axis] = +d[y_axis];
-                    console.log(d);
+                    if ($scope.chartToggle["type"] === "NBA") {
+                    	d.PlayerId = d.Name;
+                    }
+
                     parsedData[d.Cluster].values.push({
                         x: d[x_axis],
                         y: d[y_axis],
-                        name: d.player,
+                        name: d.PlayerId,
                         shape: "circle"
                     });
                 });

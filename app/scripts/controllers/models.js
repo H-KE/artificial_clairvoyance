@@ -42,7 +42,13 @@ angular.module('artificialClairvoyanceApp')
           currentPlayerData.forEach(function(season) {
             currentPlayer.values.push({x: parseFloat(season["Age"]), y: parseFloat(season[stat])})
           })
-          currentPlayer.values.push({x: parseFloat(playerData["age"]), y: parseFloat(statVal)})
+
+          var duplicate = _.findWhere(currentPlayer.values, {x: parseInt(playerData["age"])});
+          if (duplicate) {
+            duplicate.y = statVal;
+          } else {
+            currentPlayer.values.push({x: parseFloat(playerData["age"]), y: parseFloat(statVal)})
+          }
           parsedData.push(currentPlayer);
 
           selector.datum(parsedData).call(chart);
@@ -178,7 +184,7 @@ angular.module('artificialClairvoyanceApp')
                     name: d["Name"],
                     type: "Predicted",
                     cluster: d["Cluster"],
-                    age: prediction["Age"],
+                    age: d["Age"],
                     pts: prediction["PTS"],
                     tpm: prediction["3PM"],
                     blk: prediction["BLK"],

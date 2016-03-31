@@ -31,11 +31,6 @@ angular
         controller: 'ClusterCtrl',
         controllerAs: 'cluster'
       })
-      .when('/dataset', {
-        templateUrl: 'views/dataset.html',
-        controller: 'DataCtrl',
-        controllerAs: 'data'
-      })
       .when('/models', {
         templateUrl: 'views/models.html',
         controller: 'ModelCtrl',
