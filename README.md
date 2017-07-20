@@ -1,6 +1,3 @@
-#artificial-clairvoyance
-ECE496 Project for predicting future sports statistics using a distributed machine learning stack in Spark.
-
 ## Prerequisites
 This application is written in Scala and uses sbt to manage the build. You'll need to [install sbt](http://www.scala-sbt.org/).
 
